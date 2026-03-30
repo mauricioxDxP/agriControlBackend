@@ -63,18 +63,18 @@ router.get('/lot/:lotId', async (req: Request, res: Response) => {
 // POST /api/containers - Crear contenedor
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { lotId, type, capacity, unit, status, name, notes } = req.body;
+    const { lotId, typeId, capacity, unit, status, name, notes } = req.body;
     const container = await prisma.container.create({
       data: {
         lotId,
-        type,
+        typeId,
         capacity: Number(capacity),
         unit,
         status: status || 'DISPONIBLE',
         name,
         notes
       },
-      include: { lot: { include: { product: true } } }
+      include: { lot: { include: { product: true } }, type: true }
     });
     
     // Create initial movement to track the full capacity

@@ -10,6 +10,7 @@ import containerRoutes from './routes/containers';
 import tancadaRoutes from './routes/tancadas';
 import tankRoutes from './routes/tanks';
 import syncRoutes from './routes/sync';
+import settingsRoutes from './routes/settings';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -29,6 +30,7 @@ app.use('/api/containers', containerRoutes);
 app.use('/api/tancadas', tancadaRoutes);
 app.use('/api/tanks', tankRoutes);
 app.use('/api/sync', syncRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Health check
 app.get('/api/health', async (req, res) => {

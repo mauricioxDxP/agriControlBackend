@@ -10,17 +10,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Tipos de producto según PRD
-enum ProductType {
-  SEMILLA
-  FERTILIZANTE
-  PESTICIDA
+// Tipos de producto (tabla configurable)
+model ProductType {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  products  Product[]
 }
 
-// Estado del producto
-enum ProductState {
-  LIQUIDO
-  SOLIDO
+// Estado del producto (tabla configurable)
+model ProductState {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  products  Product[]
 }
 
 // Unidad base del producto
@@ -43,13 +46,13 @@ enum MovementType {
   SALIDA
 }
 
-// Tipo de contenedor
-enum ContainerType {
-  BIDON
-  SACO
-  BOLSA
-  TAMBOR
-  OTRO
+// Tipo de contenedor (tabla configurable)
+model ContainerTypeModel {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  containers Container[]
+  lots      Lot[]
 }
 
 // Estado del contenedor
@@ -63,8 +66,8 @@ enum ContainerStatus {
 model Product {
   id                String      @id @default(uuid())
   name              String
-  type              ProductType
-  state             ProductState
+  typeId            String
+  stateId           String
   baseUnit          BaseUnit
   dosePerHectareMin Float?     // Dosis mínima por hectárea
   dosePerHectareMax Float?     // Dosis máxima por hectárea
@@ -74,6 +77,8 @@ model Product {
   synced            Boolean    @default(false)
 
   // Relaciones
+  type              ProductType @relation(fields: [typeId], references: [id])
+  state             ProductState @relation(fields: [stateId], references: [id])
   lots              Lot[]
   movements         Movement[]
   tancadaProducts   TancadaProduct[]
@@ -88,14 +93,15 @@ model Lot {
   expiryDate      DateTime?
   supplier        String?
   initialStock    Float
-  containerType   ContainerType?  // Tipo de contenedor (BIDON, SACO, etc.)
-  containerCapacity Float?         // Capacidad por contenedor (ej: 20L)
+  containerTypeId String?   // Relación al tipo de contenedor
+  containerCapacity Float?   // Capacidad por contenedor (ej: 20L)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   synced          Boolean   @default(false)
 
   // Relaciones
   product         Product   @relation(fields: [productId], references: [id])
+  containerType   ContainerTypeModel? @relation(fields: [containerTypeId], references: [id])
   movements       Movement[]
   applicationLots ApplicationLot[]
   containers      Container[]
@@ -192,7 +198,7 @@ model ApplicationLot {
 model Container {
   id          String          @id @default(uuid())
   lotId       String
-  type        ContainerType
+  typeId      String
   capacity    Float           // Capacidad inicial
   unit        BaseUnit        // Unidad (L, kg, etc.)
   status      ContainerStatus @default(DISPONIBLE)
@@ -204,6 +210,7 @@ model Container {
 
   // Relaciones
   lot         Lot             @relation(fields: [lotId], references: [id])
+  type        ContainerTypeModel @relation(fields: [typeId], references: [id])
   containerMovements ContainerMovement[]
 }
 

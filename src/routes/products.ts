@@ -8,6 +8,7 @@ const prisma = new PrismaClient();
 router.get('/', async (req: Request, res: Response) => {
   try {
     const products = await prisma.product.findMany({
+      include: { type: true, state: true },
       orderBy: { createdAt: 'desc' }
     });
     res.json(products);
@@ -21,7 +22,8 @@ router.get('/:id', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
     const product = await prisma.product.findUnique({
-      where: { id }
+      where: { id },
+      include: { type: true, state: true }
     });
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
@@ -35,12 +37,12 @@ router.get('/:id', async (req: Request, res: Response) => {
 // POST /api/products - Crear producto
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { name, type, state, baseUnit, dosePerHectareMin, dosePerHectareMax, concentration } = req.body;
+    const { name, typeId, stateId, baseUnit, dosePerHectareMin, dosePerHectareMax, concentration } = req.body;
     const product = await prisma.product.create({
       data: {
         name,
-        type,
-        state,
+        typeId,
+        stateId,
         baseUnit,
         dosePerHectareMin,
         dosePerHectareMax,
@@ -57,13 +59,13 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const { name, type, state, baseUnit, dosePerHectareMin, dosePerHectareMax, concentration } = req.body;
+    const { name, typeId, stateId, baseUnit, dosePerHectareMin, dosePerHectareMax, concentration } = req.body;
     const product = await prisma.product.update({
       where: { id },
       data: {
         name,
-        type,
-        state,
+        typeId,
+        stateId,
         baseUnit,
         dosePerHectareMin,
         dosePerHectareMax,
