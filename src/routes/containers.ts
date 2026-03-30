@@ -98,18 +98,18 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const { type, capacity, unit, status, name, notes } = req.body;
+    const { typeId, capacity, unit, status, name, notes } = req.body;
     const container = await prisma.container.update({
       where: { id },
       data: {
-        type,
+        typeId,
         capacity: capacity ? Number(capacity) : undefined,
         unit,
         status,
         name,
         notes
       },
-      include: { lot: { include: { product: true } } }
+      include: { lot: { include: { product: true } }, type: true }
     });
     res.json(container);
   } catch (error) {
