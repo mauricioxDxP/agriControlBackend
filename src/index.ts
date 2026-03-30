@@ -31,8 +31,23 @@ app.use('/api/tanks', tankRoutes);
 app.use('/api/sync', syncRoutes);
 
 // Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/api/health', async (req, res) => {
+  try {
+    // Test database connection
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ 
+      status: 'ok', 
+      database: 'connected',
+      timestamp: new Date().toISOString() 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      status: 'error', 
+      database: 'disconnected',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString() 
+    });
+  }
 });
 
 // Error handling middleware
