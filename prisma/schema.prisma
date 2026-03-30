@@ -1,0 +1,290 @@
+// Schema de Prisma para AgroControl
+// Sistema de Inventario Agrícola Offline (PWA)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Tipos de producto según PRD
+enum ProductType {
+  SEMILLA
+  FERTILIZANTE
+  PESTICIDA
+}
+
+// Estado del producto
+enum ProductState {
+  LIQUIDO
+  SOLIDO
+}
+
+// Unidad base del producto
+enum BaseUnit {
+  KG
+  G
+  L
+  ML
+}
+
+// Tipo de aplicación
+enum ApplicationType {
+  FUMIGACION
+  SIEMBRA
+}
+
+// Tipo de movimiento
+enum MovementType {
+  ENTRADA
+  SALIDA
+}
+
+// Tipo de contenedor
+enum ContainerType {
+  BIDON
+  SACO
+  BOLSA
+  TAMBOR
+  OTRO
+}
+
+// Estado del contenedor
+enum ContainerStatus {
+  DISPONIBLE
+  EN_USO
+  VACIO
+}
+
+// Producto
+model Product {
+  id                String      @id @default(uuid())
+  name              String
+  type              ProductType
+  state             ProductState
+  baseUnit          BaseUnit
+  dosePerHectareMin Float?     // Dosis mínima por hectárea
+  dosePerHectareMax Float?     // Dosis máxima por hectárea
+  concentration     Float?     // Concentración % (opcional)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  synced            Boolean    @default(false)
+
+  // Relaciones
+  lots              Lot[]
+  movements         Movement[]
+  tancadaProducts   TancadaProduct[]
+  applicationProducts ApplicationProduct[]
+}
+
+// Lote de producto
+model Lot {
+  id              String    @id @default(uuid())
+  productId       String
+  entryDate       DateTime  @default(now())
+  expiryDate      DateTime?
+  supplier        String?
+  initialStock    Float
+  containerType   ContainerType?  // Tipo de contenedor (BIDON, SACO, etc.)
+  containerCapacity Float?         // Capacidad por contenedor (ej: 20L)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  synced          Boolean   @default(false)
+
+  // Relaciones
+  product         Product   @relation(fields: [productId], references: [id])
+  movements       Movement[]
+  applicationLots ApplicationLot[]
+  containers      Container[]
+}
+
+// Campo/Parcela
+model Field {
+  id          String    @id @default(uuid())
+  name        String
+  area        Float     // En hectáreas
+  location    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  synced      Boolean   @default(false)
+
+  // Relaciones
+  applications Application[]
+  tancadaFields TancadaField[]
+}
+
+// Aplicación (fumigación o siembra)
+model Application {
+  id              String          @id @default(uuid())
+  fieldId         String
+  type            ApplicationType
+  date            DateTime        @default(now())
+  waterAmount     Float?          // Cantidad de agua total (para líquidos)
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  synced          Boolean         @default(false)
+
+  // Relaciones
+  field           Field           @relation(fields: [fieldId], references: [id])
+  applicationProducts ApplicationProduct[]
+  applicationLots ApplicationLot[]
+}
+
+// Productos utilizados en una aplicación
+model ApplicationProduct {
+  id              String   @id @default(uuid())
+  applicationId   String
+  productId       String
+  dosePerHectare  Float?   // Dosis por hectárea de este producto
+  concentration   Float?   // Concentración usada %
+  quantityUsed    Float    // Cantidad total utilizada
+  lotsUsed        String?  // JSON array of lots used: [{lotId, quantityUsed}]
+  createdAt       DateTime @default(now())
+  synced          Boolean  @default(false)
+
+  // Relaciones
+  application     Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  product        Product     @relation(fields: [productId], references: [id])
+
+  @@unique([applicationId, productId])
+}
+
+// Movimiento de stock (entrada/salida)
+model Movement {
+  id              String        @id @default(uuid())
+  productId       String
+  lotId           String?
+  type            MovementType
+  quantity        Float
+  notes           String?
+  tancadaId       String?       // Referencia a tancada que lo generó
+  applicationId   String?       // Referencia a aplicación que lo generó
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  synced          Boolean       @default(false)
+
+  // Relaciones
+  product         Product       @relation(fields: [productId], references: [id])
+  lot             Lot?          @relation(fields: [lotId], references: [id])
+}
+
+// Lotes utilizados en una aplicación
+model ApplicationLot {
+  id            String      @id @default(uuid())
+  applicationId String
+  lotId         String
+  quantityUsed  Float
+  createdAt     DateTime    @default(now())
+  synced        Boolean     @default(false)
+
+  // Relaciones
+  application   Application @relation(fields: [applicationId], references: [id])
+  lot           Lot         @relation(fields: [lotId], references: [id])
+
+  @@unique([applicationId, lotId])
+}
+
+// Contenedor (bidón, saco, bolsa, tambor)
+model Container {
+  id          String          @id @default(uuid())
+  lotId       String
+  type        ContainerType
+  capacity    Float           // Capacidad inicial
+  unit        BaseUnit        // Unidad (L, kg, etc.)
+  status      ContainerStatus @default(DISPONIBLE)
+  name        String?         // Nombre/identificador del contenedor
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  synced      Boolean         @default(false)
+
+  // Relaciones
+  lot         Lot             @relation(fields: [lotId], references: [id])
+  containerMovements ContainerMovement[]
+}
+
+// Movimiento de contenedor (histórico de consumo)
+model ContainerMovement {
+  id            String    @id @default(uuid())
+  containerId   String
+  type          ContainerMovementType // CONSUMO, RECARGA, AJUSTE
+  quantity      Float     // Cantidad consumida/recargada
+  previousQuantity Float  // Cantidad antes del movimiento
+  notes         String?
+  createdAt     DateTime  @default(now())
+
+  // Relaciones
+  container     Container @relation(fields: [containerId], references: [id])
+}
+
+enum ContainerMovementType {
+  INICIAL
+  CONSUMO
+  RECARGA
+  AJUSTE
+}
+
+// Tancada (mezcla en tanque para fumigar)
+model Tancada {
+  id            String    @id @default(uuid())
+  date          DateTime  @default(now())
+  tankCapacity  Float     // Capacidad del tanque en litros
+  waterAmount   Float     // Agua total en la mezcla
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  synced        Boolean   @default(false)
+
+  // Relaciones
+  tancadaProducts TancadaProduct[]
+  tancadaFields  TancadaField[]
+}
+
+// Productos en una tancada (mezcla)
+model TancadaProduct {
+  id            String   @id @default(uuid())
+  tancadaId     String
+  productId     String
+  concentration Float?   // Concentración % de este producto en la mezcla
+  quantity      Float    // Cantidad de producto en la mezcla
+  lotsUsed      String?  // JSON array of lots used: [{lotId, quantityUsed}]
+  createdAt     DateTime @default(now())
+  synced        Boolean  @default(false)
+
+  // Relaciones
+  tancada       Tancada  @relation(fields: [tancadaId], references: [id], onDelete: Cascade)
+  product       Product  @relation(fields: [productId], references: [id])
+
+  @@unique([tancadaId, productId])
+}
+
+// Campos tratados en una tancada
+model TancadaField {
+  id            String  @id @default(uuid())
+  tancadaId     String
+  fieldId       String
+  hectaresTreated Float  // Hectáreas tratadas con esta tancada
+  productUsed   Float  // Producto usado en este campo
+  createdAt     DateTime @default(now())
+  synced        Boolean @default(false)
+
+  // Relaciones
+  tancada       Tancada @relation(fields: [tancadaId], references: [id])
+  field         Field   @relation(fields: [fieldId], references: [id])
+
+  @@unique([tancadaId, fieldId])
+}
+
+// Tanque fijo (para usar en tancadas)
+model Tank {
+  id          String    @id @default(uuid())
+  name        String    // Nombre del tanque
+  capacity    Float     // Capacidad en litros
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  synced      Boolean   @default(false)
+}
