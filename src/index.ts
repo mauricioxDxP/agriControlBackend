@@ -61,6 +61,10 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
+// Start server
+app.listen(PORT, () => {
+  console.log(`🌱 AgroControl API running on port ${PORT}`);
+});
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
