@@ -75,14 +75,14 @@ export class ProductController {
       const id = req.params.id as string;
       await productService.deleteProduct(id);
       res.status(204).send();
-    } catch (error) {
+    } catch (error:any) {
       if (error instanceof Error && error.message === 'Producto no encontrado') {
         res.status(404).json({ error: error.message });
         return;
       }
       res.status(500).json({ 
         error: 'Error deleting product',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error.message
       });
     }
   }

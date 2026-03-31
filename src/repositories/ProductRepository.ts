@@ -79,6 +79,9 @@ export class ProductRepository {
   }
 
   async delete(id: string): Promise<void> {
+    // First delete related lots
+    // await prisma.lot.deleteMany({ where: { productId: id } });
+    // Then delete the product
     await prisma.product.delete({ where: { id } });
   }
 }

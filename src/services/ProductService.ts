@@ -4,6 +4,7 @@
 // ============================================
 
 import { productRepository } from '../repositories/ProductRepository';
+import { lotRepository } from '../repositories/LotRepository';
 import { CreateProductDto, UpdateProductDto } from '../types';
 
 export class ProductService {
@@ -36,6 +37,12 @@ export class ProductService {
   async deleteProduct(id: string) {
     const existing = await productRepository.findById(id);
     if (!existing) throw new Error('Producto no encontrado');
+    
+    // Verificar si hay lotes asociados
+    const lots = await lotRepository.findByProduct(id);
+    if (lots.length > 0) {
+      throw new Error(`No se puede eliminar el producto porque tiene ${lots.length} lote(s) asociado(s). Elimine los lotes primero.`);
+    }
     
     await productRepository.delete(id);
   }
