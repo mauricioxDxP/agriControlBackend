@@ -61,11 +61,6 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-// Start server - listen on all interfaces for mobile access
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🌱 AgroControl API running on port ${PORT}`);
-  console.log(`📱 Accessible from other devices at: http://YOUR_IP_ADDRESS:${PORT}`);
-});
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
