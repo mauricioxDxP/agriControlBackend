@@ -1,94 +1,17 @@
-import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+// ============================================
+// Routes: Products
+// Thin layer
+// ============================================
+
+import { Router } from 'express';
+import { productController } from '../controllers/ProductController';
 
 const router = Router();
-const prisma = new PrismaClient();
 
-// GET /api/products - Obtener todos los productos
-router.get('/', async (req: Request, res: Response) => {
-  try {
-    const products = await prisma.product.findMany({
-      include: { type: true, state: true },
-      orderBy: { createdAt: 'desc' }
-    });
-    res.json(products);
-  } catch (error) {
-    res.status(500).json({ error: 'Error fetching products' });
-  }
-});
-
-// GET /api/products/:id - Obtener producto por ID
-router.get('/:id', async (req: Request, res: Response) => {
-  try {
-    const id = req.params.id as string;
-    const product = await prisma.product.findUnique({
-      where: { id },
-      include: { type: true, state: true }
-    });
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
-    res.json(product);
-  } catch (error) {
-    res.status(500).json({ error: 'Error fetching product' });
-  }
-});
-
-// POST /api/products - Crear producto
-router.post('/', async (req: Request, res: Response) => {
-  try {
-    const { name, typeId, stateId, baseUnit, dosePerHectareMin, dosePerHectareMax, concentration } = req.body;
-    const product = await prisma.product.create({
-      data: {
-        name,
-        typeId,
-        stateId,
-        baseUnit,
-        dosePerHectareMin,
-        dosePerHectareMax,
-        concentration
-      }
-    });
-    res.status(201).json(product);
-  } catch (error) {
-    res.status(500).json({ error: 'Error creating product' });
-  }
-});
-
-// PUT /api/products/:id - Actualizar producto
-router.put('/:id', async (req: Request, res: Response) => {
-  try {
-    const id = req.params.id as string;
-    const { name, typeId, stateId, baseUnit, dosePerHectareMin, dosePerHectareMax, concentration } = req.body;
-    const product = await prisma.product.update({
-      where: { id },
-      data: {
-        name,
-        typeId,
-        stateId,
-        baseUnit,
-        dosePerHectareMin,
-        dosePerHectareMax,
-        concentration
-      }
-    });
-    res.json(product);
-  } catch (error) {
-    res.status(500).json({ error: 'Error updating product' });
-  }
-});
-
-// DELETE /api/products/:id - Eliminar producto
-router.delete('/:id', async (req: Request, res: Response) => {
-  try {
-    const id = req.params.id as string;
-    await prisma.product.delete({
-      where: { id }
-    });
-    res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ error: 'Error deleting product' });
-  }
-});
+router.get('/', productController.getAll.bind(productController));
+router.get('/:id', productController.getById.bind(productController));
+router.post('/', productController.create.bind(productController));
+router.put('/:id', productController.update.bind(productController));
+router.delete('/:id', productController.delete.bind(productController));
 
 export default router;

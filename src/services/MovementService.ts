@@ -1,0 +1,45 @@
+// ============================================
+// Service: Movement
+// Capa de lógica de negocio
+// ============================================
+
+import { movementRepository } from '../repositories/MovementRepository';
+import { CreateMovementDto } from '../types';
+
+export class MovementService {
+  
+  async getAllMovements() {
+    return movementRepository.findAll();
+  }
+
+  async getMovementsByProduct(productId: string) {
+    return movementRepository.findByProduct(productId);
+  }
+
+  async getMovementsByLot(lotId: string) {
+    return movementRepository.findByLot(lotId);
+  }
+
+  async createMovement(data: CreateMovementDto) {
+    if (!data.productId) throw new Error('El producto es requerido');
+    if (!data.quantity || data.quantity <= 0) throw new Error('La cantidad debe ser mayor a 0');
+    
+    return movementRepository.create(data);
+  }
+
+  async deleteMovement(id: string) {
+    await movementRepository.delete(id);
+  }
+
+  async getProductStock(productId: string) {
+    const stock = await movementRepository.getStock(productId);
+    return { productId, stock };
+  }
+
+  async getLotStock(lotId: string) {
+    const stock = await movementRepository.getLotStock(lotId);
+    return { lotId, stock };
+  }
+}
+
+export const movementService = new MovementService();

@@ -48,11 +48,12 @@ enum MovementType {
 
 // Tipo de contenedor (tabla configurable)
 model ContainerTypeModel {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  createdAt DateTime @default(now())
-  containers Container[]
-  lots      Lot[]
+  id          String    @id @default(uuid())
+  name        String    @unique
+  defaultUnit BaseUnit  @default(L)
+  createdAt   DateTime  @default(now())
+  containers  Container[]
+  lots        Lot[]
 }
 
 // Estado del contenedor
@@ -93,6 +94,7 @@ model Lot {
   expiryDate      DateTime?
   supplier        String?
   initialStock    Float
+  lotCode         String?   // Código de lote ingresdo manualmente (ej: LOTE-2024-001)
   containerTypeId String?   // Relación al tipo de contenedor
   containerCapacity Float?   // Capacidad por contenedor (ej: 20L)
   createdAt       DateTime  @default(now())
