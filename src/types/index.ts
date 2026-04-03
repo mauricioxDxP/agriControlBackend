@@ -162,6 +162,8 @@ export interface CreateMovementDto {
   type: 'ENTRADA' | 'SALIDA';
   quantity: number;
   notes?: string;
+  tancadaId?: string;
+  applicationId?: string;
 }
 
 export interface MovementDto extends BaseDto {

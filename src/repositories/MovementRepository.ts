@@ -58,7 +58,9 @@ export class MovementRepository {
         lotId: data.lotId,
         type: data.type,
         quantity: data.quantity,
-        notes: data.notes
+        notes: data.notes,
+        tancadaId: data.tancadaId,
+        applicationId: data.applicationId
       },
       include: {
         product: true,

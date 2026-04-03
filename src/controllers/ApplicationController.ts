@@ -55,6 +55,24 @@ export class ApplicationController {
     }
   }
 
+  async update(req: Request, res: Response): Promise<void> {
+    try {
+      const id = req.params.id as string;
+      const data: CreateApplicationDto = req.body;
+      const application = await applicationService.updateApplication(id, data);
+      res.json(application);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'Aplicación no encontrada') {
+        res.status(404).json({ error: error.message });
+        return;
+      }
+      res.status(400).json({ 
+        error: 'Error updating application',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
   async delete(req: Request, res: Response): Promise<void> {
     try {
       const id = req.params.id as string;

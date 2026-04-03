@@ -184,10 +184,10 @@ export class LotLineRepository {
             units: 1,
             capacity: lotLine.capacity,
             unit: lotLine.unit,
-            remainingVolume: newRemainingVolumen
+            remainingVolume: lotLine.capacity - newRemainingVolumen
           }
         });
-        this.addToState(lotLine,1,'FULL');
+        this.addToState(lotLine,-1,'FULL');
       }
        this.addToState(lotLine,unitsToConsume);
     } else if (lotLine.type === 'PARTIAL') {
@@ -195,8 +195,14 @@ export class LotLineRepository {
       
       if (newRemaining <= 0) {
         // Se terminó este contenedor: crear línea EMPTY
-        // Buscar si ya existe una línea EMPTY para este lote
-        this.addToState(lotLine,1)
+        this.addToState(lotLine,1);
+      } else {
+        // Actualizar el remainingVolume
+        await prisma.lotLine.update({
+          where: { id },
+          data: { remainingVolume: newRemaining }
+        });
+      }
     }
 
     // Obtener la línea actualizada (o null si se eliminó)
@@ -221,60 +227,272 @@ export class LotLineRepository {
 
     return transformDates(updated);
   }
-}
 
-  // Recargar una línea de lote (mover de EMPTY a PARTIAL o de PARTIAL a FULL)
+  // Recargar una línea de lote
+  // - Si EMPTY: rellena todos los contenedores completos y actualiza o crea línea con type FULL
+  // - Si PARTIAL: completa el contenedor actual
   async recharge(id: string, quantity?: number): Promise<any> {
     const lotLine = await prisma.lotLine.findUnique({ where: { id } });
     if (!lotLine) throw new Error('Línea de lote no encontrada');
 
-    const previousVolume = lotLine.type === 'EMPTY' 
-      ? 0 
-      : (lotLine.remainingVolume || lotLine.capacity);
-
-    let newRemaining = quantity || lotLine.capacity;
-    let newUnits = lotLine.units;
-    let newType = lotLine.type;
+    const rechargeAmount = quantity || lotLine.capacity;
+    const previousVolume = lotLine.type === 'EMPTY' ? 0 : (lotLine.remainingVolume || lotLine.capacity);
 
     if (lotLine.type === 'EMPTY') {
-      // Recargar: pasa a PARTIAL
-      newType = 'PARTIAL';
-      newUnits = lotLine.units + 1;
+      // Obtener todas las líneas EMPTY del mismo lote con misma capacidad y unidad
+      const emptyLines = await prisma.lotLine.findMany({
+        where: {
+          lotId: lotLine.lotId,
+          productId: lotLine.productId,
+          type: 'EMPTY',
+          capacity: lotLine.capacity,
+          unit: lotLine.unit
+        }
+      });
+
+      if (emptyLines.length === 0) {
+        throw new Error('No hay líneas EMPTY para recargar');
+      }
+
+      // Calcular cuántos contenedores podemos llenar completamente
+      const totalEmptyUnits = emptyLines.reduce((sum, line) => sum + line.units, 0);
+      const unitsToFill = Math.min(totalEmptyUnits, Math.floor(rechargeAmount / lotLine.capacity));
+      const remainingAfterFull = rechargeAmount - (unitsToFill * lotLine.capacity);
+
+      // 1. Convertir X contenedores a FULL
+      let unitsRemainingToFill = unitsToFill;
+      
+      for (const emptyLine of emptyLines) {
+        if (unitsRemainingToFill <= 0) break;
+        
+        const unitsToTake = Math.min(emptyLine.units, unitsRemainingToFill);
+        
+        // Buscar o crear línea FULL
+        const existingFull = await prisma.lotLine.findFirst({
+          where: {
+            lotId: lotLine.lotId,
+            productId: lotLine.productId,
+            type: 'FULL',
+            capacity: lotLine.capacity,
+            unit: lotLine.unit
+          }
+        });
+
+        if (existingFull) {
+          await prisma.lotLine.update({
+            where: { id: existingFull.id },
+            data: { units: existingFull.units + unitsToTake }
+          });
+        } else {
+          await prisma.lotLine.create({
+            data: {
+              lotId: lotLine.lotId,
+              productId: lotLine.productId,
+              type: 'FULL',
+              units: unitsToTake,
+              capacity: lotLine.capacity,
+              unit: lotLine.unit
+            }
+          });
+        }
+
+        // Reducir las unidades EMPTY
+        if (emptyLine.units === unitsToTake) {
+          await prisma.lotLine.delete({ where: { id: emptyLine.id } });
+        } else {
+          await prisma.lotLine.update({
+            where: { id: emptyLine.id },
+            data: { units: emptyLine.units - unitsToTake }
+          });
+        }
+
+        unitsRemainingToFill -= unitsToTake;
+      }
+
+      // 2. Si queda volumen restante (menor a un contenedor completo), crear línea PARTIAL
+      if (remainingAfterFull > 0) {
+        // Buscar línea PARTIAL existente
+        const existingPartial = await prisma.lotLine.findFirst({
+          where: {
+            lotId: lotLine.lotId,
+            productId: lotLine.productId,
+            type: 'PARTIAL',
+            capacity: lotLine.capacity,
+            unit: lotLine.unit
+          }
+        });
+
+        if (existingPartial) {
+          // Sumar al partial existente
+          const newRemaining = existingPartial.remainingVolume! + remainingAfterFull;
+          if (newRemaining >= lotLine.capacity) {
+            // Se llena, convertir a FULL
+            const existingFull = await prisma.lotLine.findFirst({
+              where: {
+                lotId: lotLine.lotId,
+                productId: lotLine.productId,
+                type: 'FULL',
+                capacity: lotLine.capacity,
+                unit: lotLine.unit
+              }
+            });
+
+            if (existingFull) {
+              await prisma.lotLine.update({
+                where: { id: existingFull.id },
+                data: { units: existingFull.units + 1 }
+              });
+            } else {
+              await prisma.lotLine.create({
+                data: {
+                  lotId: lotLine.lotId,
+                  productId: lotLine.productId,
+                  type: 'FULL',
+                  units: 1,
+                  capacity: lotLine.capacity,
+                  unit: lotLine.unit
+                }
+              });
+            }
+
+            // Eliminar el PARTIAL y crear nuevo con lo que sobre
+            const leftover = newRemaining - lotLine.capacity;
+            if (leftover > 0) {
+              await prisma.lotLine.update({
+                where: { id: existingPartial.id },
+                data: { remainingVolume: leftover }
+              });
+            } else {
+              await prisma.lotLine.delete({ where: { id: existingPartial.id } });
+            }
+          } else {
+            await prisma.lotLine.update({
+              where: { id: existingPartial.id },
+              data: { remainingVolume: newRemaining }
+            });
+          }
+        } else {
+          // Crear nuevo PARTIAL con el volumen restante (el contenedor tiene lo que se consumió)
+          await prisma.lotLine.create({
+            data: {
+              lotId: lotLine.lotId,
+              productId: lotLine.productId,
+              type: 'PARTIAL',
+              units: 1,
+              capacity: lotLine.capacity,
+              unit: lotLine.unit,
+              remainingVolume: lotLine.capacity - remainingAfterFull
+            }
+          });
+        }
+      }
+
+      // Registrar movimiento
+      await prisma.lotLineMovement.create({
+        data: {
+          lotLineId: id,
+          type: 'RECARGA',
+          quantity: rechargeAmount,
+          previousVolume,
+          notes: 'Recarga de contenedor (EMPTY a FULL)'
+        }
+      });
+
+      // Retornar la línea actualizada
+      const updated = await prisma.lotLine.findUnique({
+        where: { id },
+        include: {
+          lot: { include: { product: true } },
+          product: true
+        }
+      });
+      return transformDates(updated);
+
     } else if (lotLine.type === 'PARTIAL') {
       // Completar el contenedor actual
-      newRemaining = (lotLine.remainingVolume || 0) + (quantity || lotLine.capacity);
+      let newRemaining = (lotLine.remainingVolume || 0) + (quantity || lotLine.capacity);
+      
       if (newRemaining >= lotLine.capacity) {
-        // Contenedor lleno
-        newRemaining = lotLine.capacity;
-        newType = 'FULL';
+        // Contenedor lleno - convertir a FULL
+        const remainingAfterFull = newRemaining - lotLine.capacity;
+        
+        // Buscar línea FULL existente
+        const existingFull = await prisma.lotLine.findFirst({
+          where: {
+            lotId: lotLine.lotId,
+            productId: lotLine.productId,
+            type: 'FULL',
+            capacity: lotLine.capacity,
+            unit: lotLine.unit
+          }
+        });
+
+        if (existingFull) {
+          await prisma.lotLine.update({
+            where: { id: existingFull.id },
+            data: { units: existingFull.units + 1 }
+          });
+        } else {
+          await prisma.lotLine.create({
+            data: {
+              lotId: lotLine.lotId,
+              productId: lotLine.productId,
+              type: 'FULL',
+              units: 1,
+              capacity: lotLine.capacity,
+              unit: lotLine.unit
+            }
+          });
+        }
+
+        // Eliminar la línea PARTIAL
+        await prisma.lotLine.delete({ where: { id } });
+
+        // Si quedó algo restante, crear nueva línea PARTIAL
+        if (remainingAfterFull > 0) {
+          await prisma.lotLine.create({
+            data: {
+              lotId: lotLine.lotId,
+              productId: lotLine.productId,
+              type: 'PARTIAL',
+              units: 1,
+              capacity: lotLine.capacity,
+              unit: lotLine.unit,
+              remainingVolume: remainingAfterFull
+            }
+          });
+        }
+      } else {
+        // Solo actualizar el remainingVolume
+        await prisma.lotLine.update({
+          where: { id },
+          data: { remainingVolume: newRemaining }
+        });
       }
+
+      // Registrar movimiento
+      await prisma.lotLineMovement.create({
+        data: {
+          lotLineId: id,
+          type: 'RECARGA',
+          quantity: quantity || lotLine.capacity,
+          previousVolume,
+          notes: 'Recarga de contenedor (PARTIAL)'
+        }
+      });
+
+      const updated = await prisma.lotLine.findUnique({
+        where: { id },
+        include: {
+          lot: { include: { product: true } },
+          product: true
+        }
+      });
+      return transformDates(updated);
     }
 
-    const updated = await prisma.lotLine.update({
-      where: { id },
-      data: {
-        type: newType as any,
-        units: newUnits,
-        remainingVolume: newRemaining
-      },
-      include: {
-        lot: { include: { product: true } },
-        product: true
-      }
-    });
-
-    // Registrar movimiento
-    await prisma.lotLineMovement.create({
-      data: {
-        lotLineId: id,
-        type: 'RECARGA',
-        quantity: quantity || lotLine.capacity,
-        previousVolume,
-        notes: 'Recarga de contenedor'
-      }
-    });
-
-    return transformDates(updated);
+    // Si ya es FULL, no hacer nada
+    throw new Error('La línea ya está completa (FULL)');
   }
 
   async delete(id: string): Promise<void> {

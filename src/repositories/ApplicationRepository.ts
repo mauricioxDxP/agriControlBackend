@@ -107,6 +107,56 @@ export class ApplicationRepository {
     await prisma.applicationLot.deleteMany({ where: { applicationId: id } });
     await prisma.application.delete({ where: { id } });
   }
+
+  async update(id: string, data: CreateApplicationDto): Promise<any> {
+    // Actualizar la aplicación
+    await prisma.application.update({
+      where: { id },
+      data: {
+        fieldId: data.fieldId,
+        type: data.type,
+        date: data.date ? new Date(data.date) : new Date(),
+        waterAmount: data.waterAmount,
+        notes: data.notes
+      }
+    });
+
+    // Eliminar productos y lotes existentes
+    await prisma.applicationProduct.deleteMany({ where: { applicationId: id } });
+    await prisma.applicationLot.deleteMany({ where: { applicationId: id } });
+
+    // Crear nuevos productos
+    if (data.products) {
+      for (const p of data.products) {
+        await prisma.applicationProduct.create({
+          data: {
+            applicationId: id,
+            productId: p.productId,
+            dosePerHectare: p.dosePerHectare,
+            concentration: p.concentration,
+            concentrationPerLiter: p.concentrationPerLiter,
+            quantityUsed: p.quantityUsed,
+            lotsUsed: p.lots ? JSON.stringify(p.lots) : undefined
+          }
+        });
+      }
+    }
+
+    // Crear nuevos lotes
+    if (data.lots) {
+      for (const l of data.lots) {
+        await prisma.applicationLot.create({
+          data: {
+            applicationId: id,
+            lotId: l.lotId,
+            quantityUsed: l.quantityUsed
+          }
+        });
+      }
+    }
+
+    return this.findById(id);
+  }
 }
 
 export const applicationRepository = new ApplicationRepository();
