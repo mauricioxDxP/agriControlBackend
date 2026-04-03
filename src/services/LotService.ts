@@ -20,13 +20,7 @@ export class LotService {
       return null;
     }
 
-    // Obtener contenedores del lote
-    const containers = await this.repository.findContainersByLot(id);
-    
-    return {
-      ...lot,
-      containers
-    } as any;
+    return lot as any;
   }
 
   async getLotsByProduct(productId: string): Promise<LotDto[]> {
@@ -55,42 +49,10 @@ export class LotService {
       notes: 'Entrada por creación de lote'
     });
 
-    // Crear contenedores automáticamente si se especifica tipo y capacidad
-    if (data.containerType && data.containerCapacity && data.initialStock > 0) {
-      // Buscar el tipo de contenedor creado
-      const containerTypeModel = await this.repository.findById(lot.id);
-      // Re-obtenemos el lote para obtener el containerTypeId
-      const lotWithType = await this.repository.findById(lot.id);
-      
-      if (lotWithType?.containerTypeId) {
-        const containerTypeModel = await this.repository.findById(lot.id);
-        
-        // Obtener la unidad del tipo de contenedor
-        const prisma = (await import('../repositories/prisma')).default;
-        const containerType = await prisma.containerTypeModel.findUnique({
-          where: { id: lotWithType.containerTypeId }
-        });
-        
-        const unit = containerType?.defaultUnit || 'L';
-        
-        await this.repository.createContainers(
-          lot.id,
-          lotWithType.containerTypeId,
-          data.containerCapacity,
-          unit,
-          data.containerType,
-          data.initialStock
-        );
-      }
-    }
+    // Ya no creamos contenedores individuales (Container)
+    // El usuario ahora crea LotLines desde la UI
 
-    // Obtener los contenedores creados
-    const containers = await this.repository.findContainersByLot(lot.id);
-
-    return {
-      ...lot,
-      containers
-    } as any;
+    return lot as any;
   }
 
   async updateLot(id: string, data: UpdateLotDto): Promise<LotDto> {

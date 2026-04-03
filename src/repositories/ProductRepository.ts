@@ -45,8 +45,11 @@ export class ProductRepository {
         typeId: data.typeId,
         stateId: data.stateId,
         baseUnit: data.baseUnit,
+        doseType: data.doseType,
+        doseUnit: data.doseUnit,
         dosePerHectareMin: data.dosePerHectareMin,
         dosePerHectareMax: data.dosePerHectareMax,
+        concentrationPerLiter: data.concentrationPerLiter,
         concentration: data.concentration
       },
       include: {
@@ -63,8 +66,12 @@ export class ProductRepository {
     if (data.typeId !== undefined) updateData.typeId = data.typeId;
     if (data.stateId !== undefined) updateData.stateId = data.stateId;
     if (data.baseUnit !== undefined) updateData.baseUnit = data.baseUnit;
+    if (data.doseType !== undefined) updateData.doseType = data.doseType;
+    if (data.doseUnit !== undefined) updateData.doseUnit = data.doseUnit;
+    // Manejar valores numéricos incluyendo null para borrar
     if (data.dosePerHectareMin !== undefined) updateData.dosePerHectareMin = data.dosePerHectareMin;
     if (data.dosePerHectareMax !== undefined) updateData.dosePerHectareMax = data.dosePerHectareMax;
+    if (data.concentrationPerLiter !== undefined) updateData.concentrationPerLiter = data.concentrationPerLiter;
     if (data.concentration !== undefined) updateData.concentration = data.concentration;
 
     const product = await prisma.product.update({

@@ -77,6 +77,7 @@ export class ApplicationRepository {
             productId: p.productId,
             dosePerHectare: p.dosePerHectare,
             concentration: p.concentration,
+            concentrationPerLiter: p.concentrationPerLiter,
             quantityUsed: p.quantityUsed,
             lotsUsed: p.lots ? JSON.stringify(p.lots) : undefined
           }

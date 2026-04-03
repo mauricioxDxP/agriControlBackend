@@ -147,20 +147,24 @@ export class LotRepository {
   }
 
   async delete(id: string): Promise<void> {
-    // Eliminar movimientos de contenedores
-    const containers = await prisma.container.findMany({
-      where: { lotId: id }
+    // Primero obtener los lotLines del lote para borrar sus movimientos
+    const lotLines = await prisma.lotLine.findMany({ 
+      where: { lotId: id }, 
+      select: { id: true } 
     });
-
-    for (const container of containers) {
-      await prisma.containerMovement.deleteMany({
-        where: { containerId: container.id }
-      });
+    const lotLineIds = lotLines.map(ll => ll.id);
+    
+    // Eliminar LotLineMovement asociados a esos lotLines
+    if (lotLineIds.length > 0) {
+      await prisma.lotLineMovement.deleteMany({ where: { lotLineId: { in: lotLineIds } } });
     }
-
-    // Eliminar contenedores
-    await prisma.container.deleteMany({ where: { lotId: id } });
-
+    
+    // Eliminar ApplicationLots asociadas al lote
+    await prisma.applicationLot.deleteMany({ where: { lotId: id } });
+    
+    // Eliminar LotLines asociadas al lote
+    await prisma.lotLine.deleteMany({ where: { lotId: id } });
+    
     // Eliminar movimientos del lote
     await prisma.movement.deleteMany({ where: { lotId: id } });
 
@@ -176,51 +180,6 @@ export class LotRepository {
     notes?: string;
   }) {
     return prisma.movement.create({ data });
-  }
-
-  async createContainers(
-    lotId: string, 
-    containerTypeId: string, 
-    capacity: number, 
-    unit: string, 
-    containerTypeName: string, 
-    totalStock: number
-  ) {
-    const numContainers = Math.ceil(totalStock / capacity);
-
-    for (let i = 0; i < numContainers; i++) {
-      const containerQuantity = Math.min(capacity, totalStock - (i * capacity));
-      
-      const container = await prisma.container.create({
-        data: {
-          lotId,
-          typeId: containerTypeId,
-          capacity: containerQuantity,
-          unit: unit as any,
-          status: 'DISPONIBLE',
-          name: `${containerTypeName} ${i + 1}`
-        }
-      });
-
-      await prisma.containerMovement.create({
-        data: {
-          containerId: container.id,
-          type: 'INICIAL',
-          quantity: containerQuantity,
-          previousQuantity: 0,
-          notes: 'Contenedor creado con carga inicial'
-        }
-      });
-    }
-  }
-
-  async findContainersByLot(lotId: string): Promise<any[]> {
-    const containers = await prisma.container.findMany({
-      where: { lotId },
-      include: { type: { select: { id: true, name: true } } }
-    });
-
-    return containers.map(transformDates);
   }
 }
 

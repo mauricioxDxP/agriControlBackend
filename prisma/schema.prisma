@@ -32,6 +32,17 @@ enum BaseUnit {
   G
   L
   ML
+  CC
+}
+
+// Unidad de dosificación
+enum DoseUnit {
+  BASE_UNIT  // Usar la unidad base del producto
+  CC
+  ML
+  G
+  KG
+  L
 }
 
 // Tipo de aplicación
@@ -52,15 +63,13 @@ model ContainerTypeModel {
   name        String    @unique
   defaultUnit BaseUnit  @default(L)
   createdAt   DateTime  @default(now())
-  containers  Container[]
   lots        Lot[]
 }
 
-// Estado del contenedor
-enum ContainerStatus {
-  DISPONIBLE
-  EN_USO
-  VACIO
+// Tipo de dosificación
+enum DoseType {
+  PER_HECTARE
+  CONCENTRATION
 }
 
 // Producto
@@ -70,8 +79,11 @@ model Product {
   typeId            String
   stateId           String
   baseUnit          BaseUnit
-  dosePerHectareMin Float?     // Dosis mínima por hectárea
-  dosePerHectareMax Float?     // Dosis máxima por hectárea
+  doseType          DoseType?   // Tipo de dosificación: PER_HECTARE o CONCENTRATION
+  doseUnit          DoseUnit?   // Unidad de dosificación: BASE_UNIT u otra
+  dosePerHectareMin Float?      // Dosis mínima por hectárea
+  dosePerHectareMax Float?      // Dosis máxima por hectárea
+  concentrationPerLiter Float?  // Concentración cc/L (para doseType CONCENTRATION)
   concentration     Float?     // Concentración % (opcional)
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
@@ -84,6 +96,7 @@ model Product {
   movements         Movement[]
   tancadaProducts   TancadaProduct[]
   applicationProducts ApplicationProduct[]
+  lotLines          LotLine[]
 }
 
 // Lote de producto
@@ -106,7 +119,7 @@ model Lot {
   containerType   ContainerTypeModel? @relation(fields: [containerTypeId], references: [id])
   movements       Movement[]
   applicationLots ApplicationLot[]
-  containers      Container[]
+  lotLines        LotLine[]
 }
 
 // Campo/Parcela
@@ -149,6 +162,7 @@ model ApplicationProduct {
   productId       String
   dosePerHectare  Float?   // Dosis por hectárea de este producto
   concentration   Float?   // Concentración usada %
+  concentrationPerLiter Float?  // Concentración por litro (cc/L) para productos con doseType=CONCENTRATION
   quantityUsed    Float    // Cantidad total utilizada
   lotsUsed        String?  // JSON array of lots used: [{lotId, quantityUsed}]
   createdAt       DateTime @default(now())
@@ -196,45 +210,38 @@ model ApplicationLot {
   @@unique([applicationId, lotId])
 }
 
-// Contenedor (bidón, saco, bolsa, tambor)
-model Container {
-  id          String          @id @default(uuid())
-  lotId       String
-  typeId      String
-  capacity    Float           // Capacidad inicial
-  unit        BaseUnit        // Unidad (L, kg, etc.)
-  status      ContainerStatus @default(DISPONIBLE)
-  name        String?         // Nombre/identificador del contenedor
-  notes       String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  synced      Boolean         @default(false)
+// Línea de lote (agrupación de contenedores por estado)
+model LotLine {
+  id              String    @id @default(cuid())
+  lotId           String
+  productId       String
+  type            String    // FULL | PARTIAL | EMPTY
+  units           Int       @default(0)
+  remainingVolume Float?
+  capacity        Float     // Capacidad de cada contenedor
+  unit            BaseUnit  // Unidad (L, KG, etc.)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  synced          Boolean   @default(false)
 
   // Relaciones
-  lot         Lot             @relation(fields: [lotId], references: [id])
-  type        ContainerTypeModel @relation(fields: [typeId], references: [id])
-  containerMovements ContainerMovement[]
+  lot             Lot       @relation(fields: [lotId], references: [id])
+  product         Product   @relation(fields: [productId], references: [id])
+  lotLineMovements LotLineMovement[]
 }
 
-// Movimiento de contenedor (histórico de consumo)
-model ContainerMovement {
-  id            String    @id @default(uuid())
-  containerId   String
-  type          ContainerMovementType // CONSUMO, RECARGA, AJUSTE
+// Movimiento de línea de lote (histórico de consumo)
+model LotLineMovement {
+  id            String    @id @default(cuid())
+  lotLineId     String
+  type          String    // CONSUMO | RECARGA | AJUSTE | INICIAL
   quantity      Float     // Cantidad consumida/recargada
-  previousQuantity Float  // Cantidad antes del movimiento
+  previousVolume Float    // Volumen antes del movimiento
   notes         String?
   createdAt     DateTime  @default(now())
 
   // Relaciones
-  container     Container @relation(fields: [containerId], references: [id])
-}
-
-enum ContainerMovementType {
-  INICIAL
-  CONSUMO
-  RECARGA
-  AJUSTE
+  lotLine       LotLine   @relation(fields: [lotLineId], references: [id])
 }
 
 // Tancada (mezcla en tanque para fumigar)

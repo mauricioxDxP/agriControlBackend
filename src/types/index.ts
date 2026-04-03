@@ -2,6 +2,10 @@
 // DTOs y Tipos para la API
 // ============================================
 
+// Tipos de dosificación
+export type DoseType = 'PER_HECTARE' | 'CONCENTRATION';
+export type DoseUnit = 'BASE_UNIT' | 'CC' | 'ML' | 'G' | 'KG' | 'L';
+
 // Base
 export interface BaseDto {
   id: string;
@@ -15,29 +19,38 @@ export interface CreateProductDto {
   name: string;
   typeId: string;
   stateId: string;
-  baseUnit: 'KG' | 'G' | 'L' | 'ML';
-  dosePerHectareMin?: number;
-  dosePerHectareMax?: number;
-  concentration?: number;
+  baseUnit: 'KG' | 'G' | 'L' | 'ML' | 'CC';
+  doseType?: 'PER_HECTARE' | 'CONCENTRATION';
+  doseUnit?: 'BASE_UNIT' | 'CC' | 'ML' | 'G' | 'KG' | 'L';
+  dosePerHectareMin?: number | null;
+  dosePerHectareMax?: number | null;
+  concentrationPerLiter?: number | null;
+  concentration?: number | null;
 }
 
 export interface UpdateProductDto {
   name?: string;
   typeId?: string;
   stateId?: string;
-  baseUnit?: 'KG' | 'G' | 'L' | 'ML';
-  dosePerHectareMin?: number;
-  dosePerHectareMax?: number;
-  concentration?: number;
+  baseUnit?: 'KG' | 'G' | 'L' | 'ML' | 'CC';
+  doseType?: 'PER_HECTARE' | 'CONCENTRATION';
+  doseUnit?: 'BASE_UNIT' | 'CC' | 'ML' | 'G' | 'KG' | 'L';
+  dosePerHectareMin?: number | null;
+  dosePerHectareMax?: number | null;
+  concentrationPerLiter?: number | null;
+  concentration?: number | null;
 }
 
 export interface ProductDto extends BaseDto {
   name: string;
   typeId: string;
   stateId: string;
-  baseUnit: 'KG' | 'G' | 'L' | 'ML';
+  baseUnit: 'KG' | 'G' | 'L' | 'ML' | 'CC';
+  doseType?: 'PER_HECTARE' | 'CONCENTRATION';
+  doseUnit?: 'BASE_UNIT' | 'CC' | 'ML' | 'G' | 'KG' | 'L';
   dosePerHectareMin?: number;
   dosePerHectareMax?: number;
+  concentrationPerLiter?: number;
   concentration?: number;
   type?: { id: string; name: string };
   state?: { id: string; name: string };
@@ -105,6 +118,7 @@ export interface CreateApplicationDto {
     productId: string;
     dosePerHectare?: number;
     concentration?: number;
+    concentrationPerLiter?: number;
     quantityUsed: number;
     lots?: { lotId: string; quantityUsed: number }[];
   }[];
@@ -128,6 +142,7 @@ export interface ApplicationProductDto {
   productId: string;
   dosePerHectare?: number;
   concentration?: number;
+  concentrationPerLiter?: number;
   quantityUsed: number;
   product?: ProductDto;
 }
@@ -159,39 +174,33 @@ export interface MovementDto extends BaseDto {
   lot?: LotDto;
 }
 
-// Container DTOs
-export interface CreateContainerDto {
+// LotLine DTOs (nuevo modelo para líneas de lote)
+export interface CreateLotLineDto {
   lotId: string;
-  typeId: string;
+  productId: string;
+  type: 'FULL' | 'PARTIAL' | 'EMPTY';
+  units: number;
+  remainingVolume?: number;
   capacity: number;
-  unit: 'KG' | 'G' | 'L' | 'ML';
-  status?: 'DISPONIBLE' | 'EN_USO' | 'VACIO';
-  name?: string;
-  notes?: string;
+  unit: 'KG' | 'G' | 'L' | 'ML' | 'CC';
 }
 
-export interface UpdateContainerDto {
-  status?: 'DISPONIBLE' | 'EN_USO' | 'VACIO';
-  name?: string;
-  notes?: string;
+export interface UpdateLotLineDto {
+  type?: 'FULL' | 'PARTIAL' | 'EMPTY';
+  units?: number;
+  remainingVolume?: number;
 }
 
-export interface ConsumeContainerDto {
-  quantity: number;
-  notes?: string;
-}
-
-export interface ContainerDto extends BaseDto {
+export interface LotLineDto extends BaseDto {
   lotId: string;
-  typeId: string;
+  productId: string;
+  type: 'FULL' | 'PARTIAL' | 'EMPTY';
+  units: number;
+  remainingVolume?: number;
   capacity: number;
-  unit: 'KG' | 'G' | 'L' | 'ML';
-  status: 'DISPONIBLE' | 'EN_USO' | 'VACIO';
-  name?: string;
-  notes?: string;
+  unit: 'KG' | 'G' | 'L' | 'ML' | 'CC';
   lot?: LotDto;
-  type?: { id: string; name: string };
-  currentQuantity?: number;
+  product?: ProductDto;
 }
 
 // Tancada DTOs
@@ -268,7 +277,7 @@ export interface SyncDataDto {
   fields?: FieldDto[];
   applications?: ApplicationDto[];
   movements?: MovementDto[];
-  containers?: ContainerDto[];
+  lotLines?: LotLineDto[];
   tancadas?: TancadaDto[];
   tanks?: TankDto[];
 }

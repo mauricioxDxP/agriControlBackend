@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 // POST /api/sync - Sincronizar datos desde el cliente offline
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { products, lots, fields, applications, movements, applicationLots, containers, lastSync } = req.body;
+    const { products, lots, fields, applications, movements, applicationLots, lotLines, lastSync } = req.body;
     const results: any = {
       products: [],
       lots: [],
@@ -15,7 +15,7 @@ router.post('/', async (req: Request, res: Response) => {
       applications: [],
       movements: [],
       applicationLots: [],
-      containers: []
+      lotLines: []
     };
 
     // Sincronizar productos
@@ -134,20 +134,20 @@ router.post('/', async (req: Request, res: Response) => {
       }
     }
 
-    // Sincronizar contenedores
-    if (containers && Array.isArray(containers)) {
-      for (const container of containers) {
-        const existing = await prisma.container.findUnique({ where: { id: container.id } });
+    // Sincronizar líneas de lote (lotLines)
+    if (lotLines && Array.isArray(lotLines)) {
+      for (const lotLine of lotLines) {
+        const existing = await prisma.lotLine.findUnique({ where: { id: lotLine.id } });
         if (existing) {
-          if (new Date(container.updatedAt) > new Date(existing.updatedAt)) {
-            results.containers.push(await prisma.container.update({
-              where: { id: container.id },
-              data: { ...container, synced: true }
+          if (new Date(lotLine.updatedAt) > new Date(existing.updatedAt)) {
+            results.lotLines.push(await prisma.lotLine.update({
+              where: { id: lotLine.id },
+              data: { ...lotLine, synced: true }
             }));
           }
         } else {
-          results.containers.push(await prisma.container.create({
-            data: { ...container, synced: true }
+          results.lotLines.push(await prisma.lotLine.create({
+            data: { ...lotLine, synced: true }
           }));
         }
       }
@@ -161,7 +161,7 @@ router.post('/', async (req: Request, res: Response) => {
       applications: await prisma.application.findMany({ where: { synced: false } }),
       movements: await prisma.movement.findMany({ where: { synced: false } }),
       applicationLots: await prisma.applicationLot.findMany({ where: { synced: false } }),
-      containers: await prisma.container.findMany({ where: { synced: false } })
+      lotLines: await prisma.lotLine.findMany({ where: { synced: false } })
     };
 
     // Marcar como sincronizados los datos recibidos
@@ -179,7 +179,7 @@ router.post('/', async (req: Request, res: Response) => {
       }, 
       data: { synced: true } 
     });
-    await prisma.container.updateMany({ where: { id: { in: containers?.map((c: any) => c.id) || [] } }, data: { synced: true } });
+    await prisma.lotLine.updateMany({ where: { id: { in: lotLines?.map((l: any) => l.id) || [] } }, data: { synced: true } });
 
     res.json({
       success: true,
@@ -203,7 +203,7 @@ router.get('/', async (req: Request, res: Response) => {
       applications: await prisma.application.findMany({ where: { synced: false } }),
       movements: await prisma.movement.findMany({ where: { synced: false } }),
       applicationLots: await prisma.applicationLot.findMany({ where: { synced: false } }),
-      containers: await prisma.container.findMany({ where: { synced: false } })
+      lotLines: await prisma.lotLine.findMany({ where: { synced: false } })
     };
     res.json(data);
   } catch (error) {
