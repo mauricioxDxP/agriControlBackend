@@ -31,7 +31,7 @@ export interface CreateProductDto {
 
 export interface UpdateProductDto {
   name?: string;
-  genericName?: string; // Nombre genérico (opcional)
+  genericName?: string | null; // Nombre genérico (opcional)
   typeId?: string;
   stateId?: string;
   baseUnit?: 'KG' | 'G' | 'L' | 'ML' | 'CC';
