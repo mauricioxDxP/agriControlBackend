@@ -17,6 +17,7 @@ export interface BaseDto {
 // Product DTOs
 export interface CreateProductDto {
   name: string;
+  genericName?: string; // Nombre genérico (opcional)
   typeId: string;
   stateId: string;
   baseUnit: 'KG' | 'G' | 'L' | 'ML' | 'CC';
@@ -30,6 +31,7 @@ export interface CreateProductDto {
 
 export interface UpdateProductDto {
   name?: string;
+  genericName?: string; // Nombre genérico (opcional)
   typeId?: string;
   stateId?: string;
   baseUnit?: 'KG' | 'G' | 'L' | 'ML' | 'CC';
@@ -43,6 +45,7 @@ export interface UpdateProductDto {
 
 export interface ProductDto extends BaseDto {
   name: string;
+  genericName?: string; // Nombre genérico (opcional)
   typeId: string;
   stateId: string;
   baseUnit: 'KG' | 'G' | 'L' | 'ML' | 'CC';
