@@ -12,6 +12,7 @@ model ProductType {
   name      String    @unique
   createdAt DateTime  @default(now())
   products  Product[]
+  plantedProductTypes PlantedProductType[]
 }
 
 model ProductState {
@@ -52,6 +53,7 @@ model Product {
   state                 ProductState         @relation(fields: [stateId], references: [id])
   type                  ProductType          @relation(fields: [typeId], references: [id])
   tancadaProducts       TancadaProduct[]
+  fieldProducts         Field[]              @relation("FieldProduct")
 }
 
 model Lot {
@@ -79,11 +81,25 @@ model Field {
   name          String
   area          Float
   location      String?
+  latitude      Float?
+  longitude     Float?
+  productId     String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   synced        Boolean        @default(false)
   applications  Application[]
   tancadaFields TancadaField[]
+  product       Product?       @relation("FieldProduct", fields: [productId], references: [id])
+}
+
+// Configuración global: tipos de producto que están "plantados" (se usan como filtro en campos)
+model PlantedProductType {
+  id            String      @id @default(uuid())
+  productTypeId String
+  productType   ProductType @relation(fields: [productTypeId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+
+  @@unique([productTypeId])
 }
 
 model Application {

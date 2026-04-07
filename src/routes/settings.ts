@@ -103,4 +103,49 @@ router.delete('/container-types/:id', async (req: Request, res: Response) => {
   }
 });
 
+// ===== Planted Product Types (configuración global de tipos plantados) =====
+
+// GET /api/settings/field-product-types - Obtener tipos plantados
+router.get('/field-product-types', async (req: Request, res: Response) => {
+  try {
+    const planted = await prisma.plantedProductType.findMany({
+      include: { productType: true },
+      orderBy: { createdAt: 'asc' }
+    });
+    res.json(planted);
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching planted product types' });
+  }
+});
+
+// POST /api/settings/field-product-types - Agregar tipo plantado
+router.post('/field-product-types', async (req: Request, res: Response) => {
+  try {
+    const { productTypeId } = req.body;
+    if (!productTypeId) {
+      return res.status(400).json({ error: 'productTypeId is required' });
+    }
+    const planted = await prisma.plantedProductType.create({
+      data: { productTypeId },
+      include: { productType: true }
+    });
+    res.status(201).json(planted);
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: 'Este tipo ya está en la lista de plantados' });
+    }
+    res.status(500).json({ error: 'Error adding planted product type' });
+  }
+});
+
+// DELETE /api/settings/field-product-types/:id - Eliminar tipo plantado
+router.delete('/field-product-types/:id', async (req: Request, res: Response) => {
+  try {
+    await prisma.plantedProductType.delete({ where: { id: req.params.id as string } });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: 'Error deleting planted product type' });
+  }
+});
+
 export default router;

@@ -96,18 +96,28 @@ export interface CreateFieldDto {
   name: string;
   area: number;
   location?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  productId?: string | null;
 }
 
 export interface UpdateFieldDto {
   name?: string;
   area?: number;
   location?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  productId?: string | null;
 }
 
 export interface FieldDto extends BaseDto {
   name: string;
   area: number;
   location?: string;
+  latitude?: number;
+  longitude?: number;
+  productId?: string;
+  product?: { id: string; name: string; typeId: string };
 }
 
 // Application DTOs
