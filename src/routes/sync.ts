@@ -134,25 +134,6 @@ router.post('/', async (req: Request, res: Response) => {
       }
     }
 
-    // Sincronizar líneas de lote (lotLines)
-    if (lotLines && Array.isArray(lotLines)) {
-      for (const lotLine of lotLines) {
-        const existing = await prisma.lotLine.findUnique({ where: { id: lotLine.id } });
-        if (existing) {
-          if (new Date(lotLine.updatedAt) > new Date(existing.updatedAt)) {
-            results.lotLines.push(await prisma.lotLine.update({
-              where: { id: lotLine.id },
-              data: { ...lotLine, synced: true }
-            }));
-          }
-        } else {
-          results.lotLines.push(await prisma.lotLine.create({
-            data: { ...lotLine, synced: true }
-          }));
-        }
-      }
-    }
-
     // Obtener datos actualizados del servidor
     const serverData = {
       products: await prisma.product.findMany({ where: { synced: false } }),
@@ -161,7 +142,6 @@ router.post('/', async (req: Request, res: Response) => {
       applications: await prisma.application.findMany({ where: { synced: false } }),
       movements: await prisma.movement.findMany({ where: { synced: false } }),
       applicationLots: await prisma.applicationLot.findMany({ where: { synced: false } }),
-      lotLines: await prisma.lotLine.findMany({ where: { synced: false } })
     };
 
     // Marcar como sincronizados los datos recibidos
@@ -179,7 +159,6 @@ router.post('/', async (req: Request, res: Response) => {
       }, 
       data: { synced: true } 
     });
-    await prisma.lotLine.updateMany({ where: { id: { in: lotLines?.map((l: any) => l.id) || [] } }, data: { synced: true } });
 
     res.json({
       success: true,
@@ -203,7 +182,6 @@ router.get('/', async (req: Request, res: Response) => {
       applications: await prisma.application.findMany({ where: { synced: false } }),
       movements: await prisma.movement.findMany({ where: { synced: false } }),
       applicationLots: await prisma.applicationLot.findMany({ where: { synced: false } }),
-      lotLines: await prisma.lotLine.findMany({ where: { synced: false } })
     };
     res.json(data);
   } catch (error) {

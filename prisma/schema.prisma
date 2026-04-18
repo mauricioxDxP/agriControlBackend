@@ -48,7 +48,6 @@ model Product {
   genericName           String?
   applicationProducts   ApplicationProduct[]
   lots                  Lot[]
-  lotLines              LotLine[]
   movements             Movement[]
   state                 ProductState         @relation(fields: [stateId], references: [id])
   type                  ProductType          @relation(fields: [typeId], references: [id])
@@ -72,7 +71,6 @@ model Lot {
   applicationLots   ApplicationLot[]
   containerType     ContainerTypeModel? @relation(fields: [containerTypeId], references: [id])
   product           Product             @relation(fields: [productId], references: [id])
-  lotLines          LotLine[]
   movements         Movement[]
 }
 
@@ -161,34 +159,6 @@ model ApplicationLot {
   lot           Lot         @relation(fields: [lotId], references: [id])
 
   @@unique([applicationId, lotId])
-}
-
-model LotLine {
-  id               String            @id @default(cuid())
-  lotId            String
-  productId        String
-  type             String
-  units            Int               @default(0)
-  remainingVolume  Float?
-  capacity         Float
-  unit             BaseUnit
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  synced           Boolean           @default(false)
-  lot              Lot               @relation(fields: [lotId], references: [id])
-  product          Product           @relation(fields: [productId], references: [id])
-  lotLineMovements LotLineMovement[]
-}
-
-model LotLineMovement {
-  id             String   @id @default(cuid())
-  lotLineId      String
-  type           String
-  quantity       Float
-  previousVolume Float
-  notes          String?
-  createdAt      DateTime @default(now())
-  lotLine        LotLine  @relation(fields: [lotLineId], references: [id])
 }
 
 model Tancada {

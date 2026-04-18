@@ -147,23 +147,8 @@ export class LotRepository {
   }
 
   async delete(id: string): Promise<void> {
-    // Primero obtener los lotLines del lote para borrar sus movimientos
-    const lotLines = await prisma.lotLine.findMany({ 
-      where: { lotId: id }, 
-      select: { id: true } 
-    });
-    const lotLineIds = lotLines.map(ll => ll.id);
-    
-    // Eliminar LotLineMovement asociados a esos lotLines
-    if (lotLineIds.length > 0) {
-      await prisma.lotLineMovement.deleteMany({ where: { lotLineId: { in: lotLineIds } } });
-    }
-    
     // Eliminar ApplicationLots asociadas al lote
     await prisma.applicationLot.deleteMany({ where: { lotId: id } });
-    
-    // Eliminar LotLines asociadas al lote
-    await prisma.lotLine.deleteMany({ where: { lotId: id } });
     
     // Eliminar movimientos del lote
     await prisma.movement.deleteMany({ where: { lotId: id } });

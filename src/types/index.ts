@@ -189,35 +189,6 @@ export interface MovementDto extends BaseDto {
   lot?: LotDto;
 }
 
-// LotLine DTOs (nuevo modelo para líneas de lote)
-export interface CreateLotLineDto {
-  lotId: string;
-  productId: string;
-  type: 'FULL' | 'PARTIAL' | 'EMPTY';
-  units: number;
-  remainingVolume?: number;
-  capacity: number;
-  unit: 'KG' | 'G' | 'L' | 'ML' | 'CC';
-}
-
-export interface UpdateLotLineDto {
-  type?: 'FULL' | 'PARTIAL' | 'EMPTY';
-  units?: number;
-  remainingVolume?: number;
-}
-
-export interface LotLineDto extends BaseDto {
-  lotId: string;
-  productId: string;
-  type: 'FULL' | 'PARTIAL' | 'EMPTY';
-  units: number;
-  remainingVolume?: number;
-  capacity: number;
-  unit: 'KG' | 'G' | 'L' | 'ML' | 'CC';
-  lot?: LotDto;
-  product?: ProductDto;
-}
-
 // Tancada DTOs
 export interface CreateTancadaDto {
   date?: string;
@@ -292,7 +263,6 @@ export interface SyncDataDto {
   fields?: FieldDto[];
   applications?: ApplicationDto[];
   movements?: MovementDto[];
-  lotLines?: LotLineDto[];
   tancadas?: TancadaDto[];
   tanks?: TankDto[];
 }
