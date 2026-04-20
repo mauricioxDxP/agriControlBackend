@@ -18,17 +18,30 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
 
-// Load SSL certificates (default true for development)
-const httpsEnabled = process.env.HTTPS !== 'false';
+// Load SSL certificates (optional - only if files exist)
+const httpsEnabled = process.env.HTTPS === 'true';
 let server: https.Server | http.Server;
 
 if (httpsEnabled) {
-  const httpsOptions = {
-    key: fs.readFileSync('../frontend/key.pem'),
-    cert: fs.readFileSync('../frontend/cert.pem')
-  };
-  server = https.createServer(httpsOptions, app);
-  console.log('🔒 HTTPS enabled');
+  try {
+    const keyPath = '../frontend/key.pem';
+    const certPath = '../frontend/cert.pem';
+    
+    if (!fs.existsSync(keyPath)) {
+      console.log('⚠️ SSL key not found, falling back to HTTP');
+      server = http.createServer(app);
+    } else {
+      const httpsOptions = {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath)
+      };
+      server = https.createServer(httpsOptions, app);
+      console.log('🔒 HTTPS enabled');
+    }
+  } catch (err) {
+    console.log('⚠️ SSL error, falling back to HTTP:', (err as Error).message);
+    server = http.createServer(app);
+  }
 } else {
   server = http.createServer(app);
 }
