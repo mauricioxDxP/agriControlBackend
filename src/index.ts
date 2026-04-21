@@ -18,8 +18,12 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
 
-// Load SSL certificates (optional - only if files exist)
-const httpsEnabled = process.env.HTTPS === 'true';
+// Show database connection info
+const dbUrl = process.env.DATABASE_URL || 'not set';
+console.log(`🗄️ Conectando a base de datos: ${dbUrl.replace(/:.*@/, ':***@')}`);
+
+// Load SSL certificates (default true for development)
+const httpsEnabled = process.env.HTTPS !== 'false';
 let server: https.Server | http.Server;
 
 if (httpsEnabled) {
