@@ -33,6 +33,7 @@ model ContainerTypeModel {
 model Product {
   id                    String               @id @default(uuid())
   name                  String
+  productCode           String?              // Código interno del producto
   typeId                String
   stateId               String
   baseUnit              BaseUnit
@@ -41,7 +42,7 @@ model Product {
   concentration         Float?
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
-  synced                Boolean              @default(false)
+  synced                Boolean             @default(false)
   concentrationPerLiter Float?
   doseType              DoseType?
   doseUnit              DoseUnit?

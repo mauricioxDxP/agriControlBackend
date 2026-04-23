@@ -17,6 +17,7 @@ export interface BaseDto {
 // Product DTOs
 export interface CreateProductDto {
   name: string;
+  productCode?: string; // Código interno del producto
   genericName?: string; // Nombre genérico (opcional)
   typeId: string;
   stateId: string;
@@ -31,6 +32,7 @@ export interface CreateProductDto {
 
 export interface UpdateProductDto {
   name?: string;
+  productCode?: string | null; // Código interno del producto
   genericName?: string | null; // Nombre genérico (opcional)
   typeId?: string;
   stateId?: string;
@@ -45,6 +47,7 @@ export interface UpdateProductDto {
 
 export interface ProductDto extends BaseDto {
   name: string;
+  productCode?: string; // Código interno del producto
   genericName?: string; // Nombre genérico (opcional)
   typeId: string;
   stateId: string;
