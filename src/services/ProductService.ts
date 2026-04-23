@@ -24,6 +24,7 @@ export class ProductService {
     if (!data.typeId) throw new Error('El tipo de producto es requerido');
     if (!data.stateId) throw new Error('El estado del producto es requerido');
     
+    console.log('[ProductService] createProduct data:', JSON.stringify(data));
     return productRepository.create(data);
   }
 

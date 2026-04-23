@@ -39,6 +39,7 @@ export class ProductRepository {
   }
 
   async create(data: CreateProductDto): Promise<any> {
+    console.log('[ProductRepository] create data:', JSON.stringify(data));
     const product = await prisma.product.create({
       data: {
         name: data.name,
