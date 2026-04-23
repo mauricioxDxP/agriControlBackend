@@ -42,6 +42,7 @@ export class ProductRepository {
     const product = await prisma.product.create({
       data: {
         name: data.name,
+        productCode: data.productCode,
         genericName: data.genericName, // Nombre genérico (opcional)
         typeId: data.typeId,
         stateId: data.stateId,
@@ -64,6 +65,7 @@ export class ProductRepository {
   async update(id: string, data: UpdateProductDto): Promise<any> {
     const updateData: any = {};
     if (data.name !== undefined) updateData.name = data.name;
+    if (data.productCode !== undefined) updateData.productCode = data.productCode;
     if (data.genericName !== undefined) updateData.genericName = data.genericName;
     if (data.typeId !== undefined) updateData.typeId = data.typeId;
     if (data.stateId !== undefined) updateData.stateId = data.stateId;
