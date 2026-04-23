@@ -1,6 +1,76 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 
+/**
+ * @swagger
+ * /api/settings/product-types:
+ *   get:
+ *     summary: Obtener tipos de producto
+ *     tags: [Settings]
+ *     responses:
+ *       200:
+ *         description: Lista de tipos de producto
+ *   post:
+ *     summary: Crear tipo de producto
+ *     tags: [Settings]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Tipo creado
+ * 
+ * /api/settings/product-types/{id}:
+ *   delete:
+ *     summary: Eliminar tipo de producto
+ *     tags: [Settings]
+ * 
+ * /api/settings/product-states:
+ *   get:
+ *     summary: Obtener estados de producto
+ *     tags: [Settings]
+ *   post:
+ *     summary: Crear estado de producto
+ *     tags: [Settings]
+ * 
+ * /api/settings/product-states/{id}:
+ *   delete:
+ *     summary: Eliminar estado de producto
+ *     tags: [Settings]
+ * 
+ * /api/settings/container-types:
+ *   get:
+ *     summary: Obtener tipos de contenedor
+ *     tags: [Settings]
+ *   post:
+ *     summary: Crear tipo de contenedor
+ *     tags: [Settings]
+ * 
+ * /api/settings/container-types/{id}:
+ *   delete:
+ *     summary: Eliminar tipo de contenedor
+ *     tags: [Settings]
+ * 
+ * /api/settings/field-product-types:
+ *   get:
+ *     summary: Obtener tipos plantados en campos
+ *     tags: [Settings]
+ *   post:
+ *     summary: Agregar tipo plantado
+ *     tags: [Settings]
+ * 
+ * /api/settings/field-product-types/{id}:
+ *   delete:
+ *     summary: Eliminar tipo plantado
+ *     tags: [Settings]
+ */
+
 const router = Router();
 const prisma = new PrismaClient();
 

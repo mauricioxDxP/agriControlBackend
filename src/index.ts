@@ -13,6 +13,8 @@ import tancadaRoutes from './routes/tancadas';
 import tankRoutes from './routes/tanks';
 import syncRoutes from './routes/sync';
 import settingsRoutes from './routes/settings';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './swagger';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -67,6 +69,12 @@ app.use('/api/tancadas', tancadaRoutes);
 app.use('/api/tanks', tankRoutes);
 app.use('/api/sync', syncRoutes);
 app.use('/api/settings', settingsRoutes);
+
+// Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/api-docs.json', (req, res) => {
+  res.json(swaggerSpec);
+});
 
 // Health check
 app.get('/api/health', async (req, res) => {

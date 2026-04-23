@@ -6,6 +6,44 @@
 import { Router } from 'express';
 import { movementController } from '../controllers/MovementController';
 
+/**
+ * @swagger
+ * /api/movements:
+ *   get:
+ *     summary: Obtener todos los movimientos
+ *     tags: [Movements]
+ *     responses:
+ *       200:
+ *         description: Lista de movimientos
+ *   post:
+ *     summary: Crear nuevo movimiento
+ *     tags: [Movements]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateMovementDto'
+ *     responses:
+ *       201:
+ *         description: Movimiento creado
+ * 
+ * /api/movements/product/{productId}:
+ *   get:
+ *     summary: Obtener movimientos por producto
+ *     tags: [Movements]
+ * 
+ * /api/movements/stock/{productId}:
+ *   get:
+ *     summary: Obtener stock actual de un producto
+ *     tags: [Movements]
+ * 
+ * /api/movements/{id}:
+ *   delete:
+ *     summary: Eliminar movimiento
+ *     tags: [Movements]
+ */
+
 const router = Router();
 
 router.get('/', movementController.getAll.bind(movementController));
