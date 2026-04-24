@@ -129,6 +129,24 @@ export class LotRepository {
       updateData.lotCode = data.lotCode || null;
     }
 
+    // Si cambió el initialStock, actualizar también el movimiento de entrada original
+    if (data.initialStock !== undefined) {
+      // Buscar el movimiento de entrada original de este lote
+      const entradaMovement = await prisma.movement.findFirst({
+        where: {
+          lotId: id,
+          type: 'ENTRADA'
+        }
+      });
+      
+      if (entradaMovement) {
+        await prisma.movement.update({
+          where: { id: entradaMovement.id },
+          data: { quantity: data.initialStock }
+        });
+      }
+    }
+
     const lot = await prisma.lot.update({
       where: { id },
       data: updateData,
