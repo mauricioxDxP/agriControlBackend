@@ -6,13 +6,15 @@ import fs from 'fs';
 import { PrismaClient } from '@prisma/client';
 import productRoutes from './routes/products';
 import lotRoutes from './routes/lots';
-import fieldRoutes from './routes/fields';
+import fieldRoutes from './routes/fields.routes';
 import applicationRoutes from './routes/applications';
 import movementRoutes from './routes/movements';
 import tancadaRoutes from './routes/tancadas';
 import tankRoutes from './routes/tanks';
 import syncRoutes from './routes/sync';
 import settingsRoutes from './routes/settings';
+import terrainRoutes from './routes/terrains';
+import plantingRoutes from './routes/plantings';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './swagger';
 
@@ -69,6 +71,8 @@ app.use('/api/tancadas', tancadaRoutes);
 app.use('/api/tanks', tankRoutes);
 app.use('/api/sync', syncRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/terrains', terrainRoutes);
+app.use('/api/plantings', plantingRoutes);
 
 // Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

@@ -1,6 +1,6 @@
 // ============================================
 // Controller: Field
-// Capa de presentación HTTP
+// HTTP presentation layer
 // ============================================
 
 import { Request, Response } from 'express';
@@ -11,7 +11,8 @@ export class FieldController {
   
   async getAll(req: Request, res: Response): Promise<void> {
     try {
-      const fields = await fieldService.getAllFields();
+      const terrainId = req.query.terrainId as string | undefined;
+      const fields = await fieldService.getAllFields(terrainId);
       res.json(fields);
     } catch (error) {
       res.status(500).json({ 
@@ -27,7 +28,7 @@ export class FieldController {
       const field = await fieldService.getFieldById(id);
       res.json(field);
     } catch (error) {
-      if (error instanceof Error && error.message === 'Campo no encontrado') {
+      if (error instanceof Error && error.message === 'Field not found') {
         res.status(404).json({ error: error.message });
         return;
       }
@@ -55,7 +56,7 @@ export class FieldController {
       const field = await fieldService.updateField(id, data);
       res.json(field);
     } catch (error) {
-      if (error instanceof Error && error.message === 'Campo no encontrado') {
+      if (error instanceof Error && error.message === 'Field not found') {
         res.status(404).json({ error: error.message });
         return;
       }
@@ -69,7 +70,7 @@ export class FieldController {
       await fieldService.deleteField(id);
       res.status(204).send();
     } catch (error) {
-      if (error instanceof Error && error.message === 'Campo no encontrado') {
+      if (error instanceof Error && error.message === 'Field not found') {
         res.status(404).json({ error: error.message });
         return;
       }

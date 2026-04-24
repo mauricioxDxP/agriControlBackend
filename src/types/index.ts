@@ -1,8 +1,8 @@
 // ============================================
-// DTOs y Tipos para la API
+// DTOs and Types for the API
 // ============================================
 
-// Tipos de dosificación
+// Dose types
 export type DoseType = 'PER_HECTARE' | 'CONCENTRATION';
 export type DoseUnit = 'BASE_UNIT' | 'CC' | 'ML' | 'G' | 'KG' | 'L';
 
@@ -17,8 +17,8 @@ export interface BaseDto {
 // Product DTOs
 export interface CreateProductDto {
   name: string;
-  productCode?: string; // Código interno del producto
-  genericName?: string; // Nombre genérico (opcional)
+  productCode?: string;
+  genericName?: string;
   typeId: string;
   stateId: string;
   baseUnit: 'KG' | 'G' | 'L' | 'ML' | 'CC';
@@ -32,8 +32,8 @@ export interface CreateProductDto {
 
 export interface UpdateProductDto {
   name?: string;
-  productCode?: string | null; // Código interno del producto
-  genericName?: string | null; // Nombre genérico (opcional)
+  productCode?: string | null;
+  genericName?: string | null;
   typeId?: string;
   stateId?: string;
   baseUnit?: 'KG' | 'G' | 'L' | 'ML' | 'CC';
@@ -47,8 +47,8 @@ export interface UpdateProductDto {
 
 export interface ProductDto extends BaseDto {
   name: string;
-  productCode?: string; // Código interno del producto
-  genericName?: string; // Nombre genérico (opcional)
+  productCode?: string;
+  genericName?: string;
   typeId: string;
   stateId: string;
   baseUnit: 'KG' | 'G' | 'L' | 'ML' | 'CC';
@@ -94,32 +94,70 @@ export interface LotDto extends BaseDto {
   containerType?: { id: string; name: string };
 }
 
+// Terrain DTOs
+export interface CreateTerrainDto {
+  name: string;
+  location?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+export interface UpdateTerrainDto {
+  name?: string;
+  location?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+export interface TerrainDto extends BaseDto {
+  name: string;
+  location?: string;
+  latitude?: number;
+  longitude?: number;
+  fields?: { id: string; name: string; area: number }[];
+}
+
 // Field DTOs
 export interface CreateFieldDto {
   name: string;
   area: number;
-  location?: string;
-  latitude?: number | null;
-  longitude?: number | null;
-  productId?: string | null;
+  terrainId: string;
 }
 
 export interface UpdateFieldDto {
   name?: string;
   area?: number;
-  location?: string;
-  latitude?: number | null;
-  longitude?: number | null;
-  productId?: string | null;
+  terrainId?: string;
 }
 
 export interface FieldDto extends BaseDto {
   name: string;
   area: number;
-  location?: string;
-  latitude?: number;
-  longitude?: number;
-  productId?: string;
+  terrainId: string;
+  terrain?: { id: string; name: string; location?: string };
+  plantings?: PlantingDto[];
+}
+
+// Planting DTOs
+export interface CreatePlantingDto {
+  fieldId: string;
+  productId: string;
+  startDate: string;
+  notes?: string;
+}
+
+export interface UpdatePlantingDto {
+  endDate?: string;
+  notes?: string;
+}
+
+export interface PlantingDto extends BaseDto {
+  fieldId: string;
+  productId: string;
+  startDate: string;
+  endDate?: string;
+  notes?: string;
+  field?: { id: string; name: string };
   product?: { id: string; name: string; typeId: string };
 }
 
@@ -264,6 +302,8 @@ export interface SyncDataDto {
   products?: ProductDto[];
   lots?: LotDto[];
   fields?: FieldDto[];
+  plantings?: PlantingDto[];
+  terrains?: TerrainDto[];
   applications?: ApplicationDto[];
   movements?: MovementDto[];
   tancadas?: TancadaDto[];

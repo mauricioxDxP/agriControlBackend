@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 // POST /api/sync - Sincronizar datos desde el cliente offline
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { products, lots, fields, applications, movements, applicationLots, lotLines, lastSync } = req.body;
+    const { products, lots, fields, applications, movements, applicationLots, lotLines, lastSync, terrains, plantings } = req.body;
     const results: any = {
       products: [],
       lots: [],
@@ -15,7 +15,9 @@ router.post('/', async (req: Request, res: Response) => {
       applications: [],
       movements: [],
       applicationLots: [],
-      lotLines: []
+      lotLines: [],
+      terrains: [],
+      plantings: []
     };
 
     // Sincronizar productos
@@ -58,7 +60,26 @@ router.post('/', async (req: Request, res: Response) => {
       }
     }
 
-    // Sincronizar campos
+    // Sincronizar terrains (nuevo)
+    if (terrains && Array.isArray(terrains)) {
+      for (const terrain of terrains) {
+        const existing = await prisma.terrain.findUnique({ where: { id: terrain.id } });
+        if (existing) {
+          if (new Date(terrain.updatedAt) > new Date(existing.updatedAt)) {
+            results.terrains.push(await prisma.terrain.update({
+              where: { id: terrain.id },
+              data: { ...terrain, synced: true }
+            }));
+          }
+        } else {
+          results.terrains.push(await prisma.terrain.create({
+            data: { ...terrain, synced: true }
+          }));
+        }
+      }
+    }
+
+    // Sincronizar fields
     if (fields && Array.isArray(fields)) {
       for (const field of fields) {
         const existing = await prisma.field.findUnique({ where: { id: field.id } });
@@ -72,6 +93,25 @@ router.post('/', async (req: Request, res: Response) => {
         } else {
           results.fields.push(await prisma.field.create({
             data: { ...field, synced: true }
+          }));
+        }
+      }
+    }
+
+    // Sincronizar plantings (nuevo)
+    if (plantings && Array.isArray(plantings)) {
+      for (const planting of plantings) {
+        const existing = await prisma.planting.findUnique({ where: { id: planting.id } });
+        if (existing) {
+          if (new Date(planting.updatedAt) > new Date(existing.updatedAt)) {
+            results.plantings.push(await prisma.planting.update({
+              where: { id: planting.id },
+              data: { ...planting, synced: true }
+            }));
+          }
+        } else {
+          results.plantings.push(await prisma.planting.create({
+            data: { ...planting, synced: true }
           }));
         }
       }
@@ -142,12 +182,18 @@ router.post('/', async (req: Request, res: Response) => {
       applications: await prisma.application.findMany({ where: { synced: false } }),
       movements: await prisma.movement.findMany({ where: { synced: false } }),
       applicationLots: await prisma.applicationLot.findMany({ where: { synced: false } }),
+      tanques: await prisma.tank.findMany({ where: { synced: false } }),
+      tancadas: await prisma.tancada.findMany({ where: { synced: false } }),
+      terrains: await prisma.terrain.findMany({ where: { synced: false } }),
+      plantings: await prisma.planting.findMany({ where: { synced: false } }),
     };
 
     // Marcar como sincronizados los datos recibidos
     await prisma.product.updateMany({ where: { id: { in: products?.map((p: any) => p.id) || [] } }, data: { synced: true } });
     await prisma.lot.updateMany({ where: { id: { in: lots?.map((l: any) => l.id) || [] } }, data: { synced: true } });
+    await prisma.terrain.updateMany({ where: { id: { in: terrains?.map((t: any) => t.id) || [] } }, data: { synced: true } });
     await prisma.field.updateMany({ where: { id: { in: fields?.map((f: any) => f.id) || [] } }, data: { synced: true } });
+    await prisma.planting.updateMany({ where: { id: { in: plantings?.map((s: any) => s.id) || [] } }, data: { synced: true } });
     await prisma.application.updateMany({ where: { id: { in: applications?.map((a: any) => a.id) || [] } }, data: { synced: true } });
     await prisma.movement.updateMany({ where: { id: { in: movements?.map((m: any) => m.id) || [] } }, data: { synced: true } });
     await prisma.applicationLot.updateMany({ 
@@ -182,6 +228,10 @@ router.get('/', async (req: Request, res: Response) => {
       applications: await prisma.application.findMany({ where: { synced: false } }),
       movements: await prisma.movement.findMany({ where: { synced: false } }),
       applicationLots: await prisma.applicationLot.findMany({ where: { synced: false } }),
+      tanques: await prisma.tank.findMany({ where: { synced: false } }),
+      tancadas: await prisma.tancada.findMany({ where: { synced: false } }),
+      terrains: await prisma.terrain.findMany({ where: { synced: false } }),
+      plantings: await prisma.planting.findMany({ where: { synced: false } }),
     };
     res.json(data);
   } catch (error) {

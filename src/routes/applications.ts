@@ -39,7 +39,7 @@ import { applicationController } from '../controllers/ApplicationController';
  *     summary: Eliminar aplicación
  *     tags: [Applications]
  * 
- * /api/applications/field/{fieldId}:
+ * /api/applications/campo/{campoId}:
  *   get:
  *     summary: Obtener aplicaciones por campo
  *     tags: [Applications]

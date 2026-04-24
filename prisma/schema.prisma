@@ -53,7 +53,7 @@ model Product {
   state                 ProductState         @relation(fields: [stateId], references: [id])
   type                  ProductType          @relation(fields: [typeId], references: [id])
   tancadaProducts       TancadaProduct[]
-  fieldProducts         Field[]              @relation("FieldProduct")
+  plantings             Planting[]
 }
 
 model Lot {
@@ -75,20 +75,46 @@ model Lot {
   movements         Movement[]
 }
 
+model Terrain {
+  id        String   @id @default(uuid())
+  name      String
+  location  String?
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  synced    Boolean  @default(false)
+  fields    Field[]
+}
+
 model Field {
-  id            String         @id @default(uuid())
-  name          String
-  area          Float
-  location      String?
-  latitude      Float?
-  longitude     Float?
-  productId     String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  synced        Boolean        @default(false)
+  id        String   @id @default(uuid())
+  name      String
+  area      Float
+  terrainId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  synced    Boolean  @default(false)
+  deletedAt DateTime?
+  terrain   Terrain  @relation(fields: [terrainId], references: [id])
   applications  Application[]
   tancadaFields TancadaField[]
-  product       Product?       @relation("FieldProduct", fields: [productId], references: [id])
+  plantings   Planting[]
+}
+
+model Planting {
+  id          String    @id @default(uuid())
+  fieldId     String
+  productId   String
+  startDate   DateTime
+  endDate     DateTime?
+  notes       String?
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  synced      Boolean   @default(false)
+  field       Field     @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  product     Product   @relation(fields: [productId], references: [id])
 }
 
 // Configuración global: tipos de producto que están "plantados" (se usan como filtro en campos)

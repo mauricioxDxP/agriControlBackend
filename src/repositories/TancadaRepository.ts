@@ -111,7 +111,7 @@ export class TancadaRepository {
       }
     }
 
-    // Crear campos tratados
+    // Crear fields treated
     if (data.fields) {
       for (const f of data.fields) {
         await prisma.tancadaField.create({
@@ -124,15 +124,16 @@ export class TancadaRepository {
         });
       }
     }
+  }
 
-    return this.findById(tancada.id);
+  async delete(id: string): Promise<void> {
+    await prisma.tancadaProduct.deleteMany({ where: { tancadaId: id } });
+    await prisma.tancadaField.deleteMany({ where: { tancadaId: id } });
+    await prisma.tancada.delete({ where: { id } });
   }
 
   async update(id: string, data: CreateTancadaDto): Promise<any> {
-    await prisma.tancadaProduct.deleteMany({ where: { tancadaId: id } });
-    await prisma.tancadaField.deleteMany({ where: { tancadaId: id } });
-    await prisma.movement.deleteMany({ where: { tancadaId: id } });
-
+    // Actualizar la tancada
     await prisma.tancada.update({
       where: { id },
       data: {
@@ -143,6 +144,11 @@ export class TancadaRepository {
       }
     });
 
+    // Eliminar campos y productos existentes
+    await prisma.tancadaProduct.deleteMany({ where: { tancadaId: id } });
+    await prisma.tancadaField.deleteMany({ where: { tancadaId: id } });
+
+    // Crear nuevos productos
     if (data.products) {
       for (const p of data.products) {
         await prisma.tancadaProduct.create({
@@ -154,31 +160,10 @@ export class TancadaRepository {
             lotsUsed: p.lots ? JSON.stringify(p.lots) : undefined
           }
         });
-
-        // Crear movimiento de SALIDA por cada lote utilizado
-        if (p.lots && p.lots.length > 0) {
-          for (const lotUsage of p.lots) {
-            const lot = await prisma.lot.findUnique({
-              where: { id: lotUsage.lotId }
-            });
-            
-            if (lot) {
-              await prisma.movement.create({
-                data: {
-                  productId: lot.productId,
-                  lotId: lotUsage.lotId,
-                  type: 'SALIDA',
-                  quantity: lotUsage.quantityUsed,
-                  tancadaId: id,
-                  notes: `Salida por tancada - ${p.productId}`
-                }
-              });
-            }
-          }
-        }
       }
     }
 
+    // Crear nuevos campos tratados
     if (data.fields) {
       for (const f of data.fields) {
         await prisma.tancadaField.create({
@@ -193,15 +178,6 @@ export class TancadaRepository {
     }
 
     return this.findById(id);
-  }
-
-  async delete(id: string): Promise<void> {
-    // Eliminar los movimientos de salida
-    await prisma.movement.deleteMany({ where: { tancadaId: id } });
-    
-    await prisma.tancadaProduct.deleteMany({ where: { tancadaId: id } });
-    await prisma.tancadaField.deleteMany({ where: { tancadaId: id } });
-    await prisma.tancada.delete({ where: { id } });
   }
 }
 
