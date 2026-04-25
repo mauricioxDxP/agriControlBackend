@@ -15,6 +15,7 @@ import syncRoutes from './routes/sync';
 import settingsRoutes from './routes/settings';
 import terrainRoutes from './routes/terrains';
 import plantingRoutes from './routes/plantings';
+import reportRoutes from './routes/reports';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './swagger';
 
@@ -73,6 +74,7 @@ app.use('/api/sync', syncRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/terrains', terrainRoutes);
 app.use('/api/plantings', plantingRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
