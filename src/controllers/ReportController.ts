@@ -38,61 +38,120 @@ async stockVerificationReport(req: Request, res: Response): Promise<void> {
       doc.setFont('helvetica', 'normal');
       doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 105, 22, { align: 'center' });
 
-      // Prepare data rows - only necessary rows (no empty rows)
-      const rows = products.map(product => {
-        // Calculate total stock from movements only
-        let totalStock = 0;
-        for (const lot of product.lots) {
-          const lotStock = lot.movements.reduce((mSum: number, m: any) => mSum + m.quantity, 0);
-          totalStock += lotStock;
+      // Group products by type
+      const groupedProducts: Record<string, typeof products> = {};
+      for (const product of products) {
+        const typeName = product.type?.name || 'SIN TIPO';
+        if (!groupedProducts[typeName]) {
+          groupedProducts[typeName] = [];
         }
-        return [
-          product.productCode || '-',
-          product.name,
-          totalStock.toFixed(1),
-          ''
-        ];
-      });
+        groupedProducts[typeName].push(product);
+      }
 
-      // Generate table with compact spacing
-      autoTable(doc, {
-        head: [['Cod.', 'Nombre', 'Cant.', 'OK', 'Observaciones']],
-        body: rows,
-        startY: 30,
-        margin: { left: 15, right: 15 },
-        columnStyles: {
-          0: { cellWidth: 20 },
-          1: { cellWidth: 50 },
-          2: { cellWidth: 18, halign: 'center' },
-          3: { cellWidth: 12, halign: 'center' },
-          4: { cellWidth: 80 }
-        },
-        headStyles: {
-          fillColor: [220, 220, 220],
-          textColor: [0, 0, 0],
-          fontStyle: 'bold',
-          fontSize: 8,
-          cellPadding: 1
-        },
-        bodyStyles: {
-          fontSize: 8,
-          cellPadding: 1
-        },
-        styles: {
-          lineColor: [150, 150, 150],
-          lineWidth: 0.1
+      // Prepare all tables data
+      const allTables: { head: any[]; body: any[]; typeName: string }[] = [];
+
+      for (const [typeName, typeProducts] of Object.entries(groupedProducts)) {
+        const rows = typeProducts.map(product => {
+          // Calculate total stock from movements only
+          let totalStock = 0;
+          for (const lot of product.lots) {
+            const lotStock = lot.movements.reduce((mSum: number, m: any) => mSum + m.quantity, 0);
+            totalStock += lotStock;
+          }
+          return [
+            product.productCode || '-',
+            product.name,
+            totalStock.toFixed(1),
+            ''
+          ];
+        });
+
+        // Add subtotal row
+        let typeTotal = 0;
+        for (const product of typeProducts) {
+          for (const lot of product.lots) {
+            const lotStock = lot.movements.reduce((mSum: number, m: any) => mSum + m.quantity, 0);
+            typeTotal += lotStock;
+          }
         }
-      });
+        rows.push(['', `Subtotal ${typeName}:`, typeTotal.toFixed(1), '']);
+
+        allTables.push({
+          typeName,
+          head: [['Cod.', 'Nombre', 'Cant.', 'OK']],
+          body: rows
+        });
+      }
+
+      // Generate all tables
+      let currentY = 30;
+
+      for (let i = 0; i < allTables.length; i++) {
+        const table = allTables[i];
+
+        // Check if we need a new page
+        if (currentY > 250) {
+          doc.addPage();
+          currentY = 20;
+        }
+
+        // Type header
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text(table.typeName, 15, currentY);
+        currentY += 5;
+
+        // Generate table
+        autoTable(doc, {
+          head: table.head,
+          body: table.body,
+          startY: currentY,
+          margin: { left: 15, right: 15 },
+          columnStyles: {
+            0: { cellWidth: 20 },
+            1: { cellWidth: 80 },
+            2: { cellWidth: 18, halign: 'center' },
+            3: { cellWidth: 12, halign: 'center' }
+          },
+          headStyles: {
+            fillColor: [220, 220, 220],
+            textColor: [0, 0, 0],
+            fontStyle: 'bold',
+            fontSize: 8,
+            cellPadding: 1
+          },
+          bodyStyles: {
+            fontSize: 8,
+            cellPadding: 1
+          },
+          styles: {
+            lineColor: [150, 150, 150],
+            lineWidth: 0.1
+          },
+          didParseCell: (data) => {
+            // Make subtotal row bold
+            const rowIndex = data.row.index;
+            if (rowIndex === data.table.body.length - 1) {
+              data.cell.styles.fontStyle = 'bold';
+              data.cell.styles.fillColor = [240, 240, 240];
+            }
+          },
+          willDrawCell: (data) => {
+            // nothing special needed here
+          }
+        });
+
+        currentY = (doc as any).lastAutoTable.finalY + 10;
+      }
 
       // Add signature section
-      const finalY = (doc as any).lastAutoTable.finalY || 200;
-
       doc.setFontSize(10);
-      doc.text('Firma del responsable:', 20, finalY + 20);
-      doc.line(20, finalY + 25, 90, finalY + 25);
+      doc.text('Firma del responsable:', 20, currentY + 10);
+      doc.line(20, currentY + 15, 90, currentY + 15);
 
-      doc.text('Firma del verificante:', 120, finalY + 20);
-      doc.line(120, finalY + 25, 190, finalY + 25);
+      doc.text('Firma del verificante:', 120, currentY + 10);
+      doc.line(120, currentY + 15, 190, currentY + 15);
 
       // Send response
       res.setHeader('Content-Type', 'application/pdf');
