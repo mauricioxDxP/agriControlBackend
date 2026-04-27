@@ -155,7 +155,7 @@ async stockVerificationReport(req: Request, res: Response): Promise<void> {
 
       // Send response
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'inline; filename=Verificacion_Stock.pdf');
+      res.setHeader('Content-Disposition', `inline; filename=Verificacion_Stock_${Date.now()}.pdf`);
       const pdfData = doc.output('arraybuffer');
       res.send(Buffer.from(pdfData));
     } catch (error) {
