@@ -40,11 +40,11 @@ async stockVerificationReport(req: Request, res: Response): Promise<void> {
 
       // Prepare data rows - only necessary rows (no empty rows)
       const rows = products.map(product => {
-        // Calculate total stock from lots
+        // Calculate total stock from movements only
         let totalStock = 0;
         for (const lot of product.lots) {
-          const totalMovements = lot.movements.reduce((mSum: number, m: any) => mSum + m.quantity, 0);
-          totalStock += lot.initialStock + totalMovements;
+          const lotStock = lot.movements.reduce((mSum: number, m: any) => mSum + m.quantity, 0);
+          totalStock += lotStock;
         }
         return [
           product.productCode || '-',
