@@ -16,6 +16,7 @@ import settingsRoutes from './routes/settings';
 import terrainRoutes from './routes/terrains';
 import plantingRoutes from './routes/plantings';
 import reportRoutes from './routes/reports';
+import inventoryCountRoutes from './routes/inventory-count';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './swagger';
 
@@ -75,6 +76,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/terrains', terrainRoutes);
 app.use('/api/plantings', plantingRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/inventory-count', inventoryCountRoutes);
 
 // Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

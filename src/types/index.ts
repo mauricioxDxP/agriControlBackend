@@ -329,3 +329,72 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
 }
+
+// InventoryCount DTOs
+export type AdjustmentType = 'INCREASE' | 'DECREASE';
+export type AdjustmentStatus = 'PENDING' | 'AUTHORIZED' | 'REJECTED';
+
+export interface CreateInventoryCountDto {
+  date: string;
+  notes?: string;
+  lines?: {
+    productId: string;
+    stockManual: number;
+  }[];
+}
+
+export interface CreateInventoryCountLineDto {
+  productId: string;
+  stockManual: number;
+}
+
+export interface UpdateInventoryCountLineDto {
+  stockManual: number;
+}
+
+export interface RequestAdjustmentDto {
+  lineId: string;
+  type: 'INCREASE' | 'DECREASE';
+  lots: {
+    lotId: string;
+    quantity: number;
+  }[];
+  notes?: string;
+}
+
+export interface InventoryCountAdjustmentLotDto {
+  id: string;
+  adjustmentId: string;
+  lotId: string;
+  quantity: number;
+  lot?: LotDto;
+}
+
+export interface InventoryCountAdjustmentDto extends BaseDto {
+  inventoryCountLineId: string;
+  type: 'INCREASE' | 'DECREASE';
+  totalQuantity: number;
+  status: 'PENDING' | 'AUTHORIZED' | 'REJECTED';
+  notes?: string;
+  createdAt: string;
+  authorizedAt?: string;
+  rejectedAt?: string;
+  lots: InventoryCountAdjustmentLotDto[];
+}
+
+export interface InventoryCountLineDto extends BaseDto {
+  inventoryCountId: string;
+  productId: string;
+  productCode: string;
+  productName: string;
+  stockActual: number;
+  stockManual: number;
+  adjustmentPending: boolean;
+  adjustments?: InventoryCountAdjustmentDto[];
+}
+
+export interface InventoryCountDto extends BaseDto {
+  date: string;
+  notes?: string;
+  lines: InventoryCountLineDto[];
+}

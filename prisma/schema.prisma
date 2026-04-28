@@ -54,6 +54,7 @@ model Product {
   type                  ProductType          @relation(fields: [typeId], references: [id])
   tancadaProducts       TancadaProduct[]
   plantings             Planting[]
+  inventoryCountLines   InventoryCountLine[]
 }
 
 model Lot {
@@ -73,6 +74,7 @@ model Lot {
   containerType     ContainerTypeModel? @relation(fields: [containerTypeId], references: [id])
   product           Product             @relation(fields: [productId], references: [id])
   movements         Movement[]
+  inventoryCountAdjustmentLots InventoryCountAdjustmentLot[]
 }
 
 model Terrain {
@@ -237,6 +239,78 @@ model Tank {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   synced    Boolean  @default(false)
+}
+
+// InventoryCount models
+model InventoryCount {
+  id        String   @id @default(uuid())
+  date      DateTime
+  notes     String?
+  synced    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lines     InventoryCountLine[]
+
+  @@index([date])
+}
+
+model InventoryCountLine {
+  id                String   @id @default(uuid())
+  inventoryCountId  String
+  productId         String
+  productCode       String
+  productName       String
+  stockActual       Float
+  stockManual       Float
+  adjustmentPending Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  inventoryCount    InventoryCount @relation(fields: [inventoryCountId], references: [id], onDelete: Cascade)
+  product           Product  @relation(fields: [productId], references: [id])
+  adjustments       InventoryCountAdjustment[]
+
+  @@index([inventoryCountId])
+  @@index([productId])
+}
+
+model InventoryCountAdjustment {
+  id                    String         @id @default(uuid())
+  inventoryCountLineId  String
+  type                  AdjustmentType
+  totalQuantity         Float
+  status                AdjustmentStatus @default(PENDING)
+  notes                 String?
+  createdAt             DateTime       @default(now())
+  authorizedAt          DateTime?
+  rejectedAt            DateTime?
+  line                  InventoryCountLine @relation(fields: [inventoryCountLineId], references: [id], onDelete: Cascade)
+  lots                  InventoryCountAdjustmentLot[]
+
+  @@index([inventoryCountLineId])
+  @@index([status])
+}
+
+model InventoryCountAdjustmentLot {
+  id            String   @id @default(uuid())
+  adjustmentId  String
+  lotId         String
+  quantity      Float
+  adjustment    InventoryCountAdjustment @relation(fields: [adjustmentId], references: [id], onDelete: Cascade)
+  lot           Lot      @relation(fields: [lotId], references: [id])
+
+  @@index([adjustmentId])
+  @@index([lotId])
+}
+
+enum AdjustmentType {
+  INCREASE
+  DECREASE
+}
+
+enum AdjustmentStatus {
+  PENDING
+  AUTHORIZED
+  REJECTED
 }
 
 enum BaseUnit {

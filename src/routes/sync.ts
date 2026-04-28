@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 // POST /api/sync - Sincronizar datos desde el cliente offline
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { products, lots, fields, applications, movements, applicationLots, lotLines, lastSync, terrains, plantings } = req.body;
+    const { products, lots, fields, applications, movements, applicationLots, lotLines, lastSync, terrains, plantings, inventoryCounts, inventoryCountLines, inventoryCountAdjustments, inventoryCountAdjustmentLots } = req.body;
     const results: any = {
       products: [],
       lots: [],
@@ -17,7 +17,11 @@ router.post('/', async (req: Request, res: Response) => {
       applicationLots: [],
       lotLines: [],
       terrains: [],
-      plantings: []
+      plantings: [],
+      inventoryCounts: [],
+      inventoryCountLines: [],
+      inventoryCountAdjustments: [],
+      inventoryCountAdjustmentLots: []
     };
 
     // Sincronizar productos
@@ -174,6 +178,76 @@ router.post('/', async (req: Request, res: Response) => {
       }
     }
 
+    // Sincronizar inventoryCounts
+    if (inventoryCounts && Array.isArray(inventoryCounts)) {
+      for (const ic of inventoryCounts) {
+        const existing = await prisma.inventoryCount.findUnique({ where: { id: ic.id } });
+        if (existing) {
+          if (new Date(ic.updatedAt) > new Date(existing.updatedAt)) {
+            results.inventoryCounts.push(await prisma.inventoryCount.update({
+              where: { id: ic.id },
+              data: { ...ic, synced: true }
+            }));
+          }
+        } else {
+          results.inventoryCounts.push(await prisma.inventoryCount.create({
+            data: { ...ic, synced: true }
+          }));
+        }
+      }
+    }
+
+    // Sincronizar inventoryCountLines
+    if (inventoryCountLines && Array.isArray(inventoryCountLines)) {
+      for (const ic of inventoryCountLines) {
+        const existing = await prisma.inventoryCountLine.findUnique({ where: { id: ic.id } });
+        if (existing) {
+          results.inventoryCountLines.push(await prisma.inventoryCountLine.update({
+            where: { id: ic.id },
+            data: { ...ic }
+          }));
+        } else {
+          results.inventoryCountLines.push(await prisma.inventoryCountLine.create({
+            data: { ...ic }
+          }));
+        }
+      }
+    }
+
+    // Sincronizar inventoryCountAdjustments
+    if (inventoryCountAdjustments && Array.isArray(inventoryCountAdjustments)) {
+      for (const ica of inventoryCountAdjustments) {
+        const existing = await prisma.inventoryCountAdjustment.findUnique({ where: { id: ica.id } });
+        if (existing) {
+          results.inventoryCountAdjustments.push(await prisma.inventoryCountAdjustment.update({
+            where: { id: ica.id },
+            data: { ...ica }
+          }));
+        } else {
+          results.inventoryCountAdjustments.push(await prisma.inventoryCountAdjustment.create({
+            data: { ...ica }
+          }));
+        }
+      }
+    }
+
+    // Sincronizar inventoryCountAdjustmentLots
+    if (inventoryCountAdjustmentLots && Array.isArray(inventoryCountAdjustmentLots)) {
+      for (const ical of inventoryCountAdjustmentLots) {
+        const existing = await prisma.inventoryCountAdjustmentLot.findUnique({ where: { id: ical.id } });
+        if (existing) {
+          results.inventoryCountAdjustmentLots.push(await prisma.inventoryCountAdjustmentLot.update({
+            where: { id: ical.id },
+            data: { ...ical }
+          }));
+        } else {
+          results.inventoryCountAdjustmentLots.push(await prisma.inventoryCountAdjustmentLot.create({
+            data: { ...ical }
+          }));
+        }
+      }
+    }
+
     // Obtener datos actualizados del servidor
     const serverData = {
       products: await prisma.product.findMany({ where: { synced: false } }),
@@ -186,6 +260,10 @@ router.post('/', async (req: Request, res: Response) => {
       tancadas: await prisma.tancada.findMany({ where: { synced: false } }),
       terrains: await prisma.terrain.findMany({ where: { synced: false } }),
       plantings: await prisma.planting.findMany({ where: { synced: false } }),
+      inventoryCounts: await prisma.inventoryCount.findMany({ where: { synced: false } }),
+      inventoryCountLines: await prisma.inventoryCountLine.findMany(),
+      inventoryCountAdjustments: await prisma.inventoryCountAdjustment.findMany(),
+      inventoryCountAdjustmentLots: await prisma.inventoryCountAdjustmentLot.findMany(),
     };
 
     // Marcar como sincronizados los datos recibidos
@@ -205,6 +283,7 @@ router.post('/', async (req: Request, res: Response) => {
       }, 
       data: { synced: true } 
     });
+    await prisma.inventoryCount.updateMany({ where: { id: { in: inventoryCounts?.map((ic: any) => ic.id) || [] } }, data: { synced: true } });
 
     res.json({
       success: true,
@@ -232,6 +311,10 @@ router.get('/', async (req: Request, res: Response) => {
       tancadas: await prisma.tancada.findMany({ where: { synced: false } }),
       terrains: await prisma.terrain.findMany({ where: { synced: false } }),
       plantings: await prisma.planting.findMany({ where: { synced: false } }),
+      inventoryCounts: await prisma.inventoryCount.findMany({ where: { synced: false } }),
+      inventoryCountLines: await prisma.inventoryCountLine.findMany(),
+      inventoryCountAdjustments: await prisma.inventoryCountAdjustment.findMany(),
+      inventoryCountAdjustmentLots: await prisma.inventoryCountAdjustmentLot.findMany(),
     };
     res.json(data);
   } catch (error) {
