@@ -70,6 +70,17 @@ export class MovementRepository {
     return transformDates(movement);
   }
 
+  async findById(id: string): Promise<any | null> {
+    const movement = await prisma.movement.findUnique({
+      where: { id },
+      include: {
+        product: true,
+        lot: true
+      }
+    });
+    return movement ? transformDates(movement) : null;
+  }
+
   async delete(id: string): Promise<void> {
     await prisma.movement.delete({ where: { id } });
   }

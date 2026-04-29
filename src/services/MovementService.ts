@@ -28,6 +28,17 @@ export class MovementService {
   }
 
   async deleteMovement(id: string) {
+    // Verificar que el movimiento no esté asociado a una tanda o aplicación
+    const movement = await movementRepository.findById(id);
+    if (!movement) {
+      throw new Error('Movimiento no encontrado');
+    }
+    if (movement.tancadaId) {
+      throw new Error('No se puede eliminar un movimiento asociado a una tanda');
+    }
+    if (movement.applicationId) {
+      throw new Error('No se puede eliminar un movimiento asociado a una aplicación');
+    }
     await movementRepository.delete(id);
   }
 

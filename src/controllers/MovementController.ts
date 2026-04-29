@@ -57,7 +57,10 @@ export class MovementController {
       await movementService.deleteMovement(id);
       res.status(204).send();
     } catch (error) {
-      res.status(500).json({ error: 'Error deleting movement' });
+      const message = error instanceof Error ? error.message : 'Error deleting movement';
+      const status = message.includes('no encontrado') ? 404 : 
+                     message.includes('No se puede eliminar') ? 400 : 500;
+      res.status(status).json({ error: message });
     }
   }
 
