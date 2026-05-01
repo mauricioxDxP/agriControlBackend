@@ -20,6 +20,10 @@ export class MovementService {
     return movementRepository.findByLot(lotId);
   }
 
+  async getMovementsByTancada(tancadaId: string) {
+    return movementRepository.findByTancada(tancadaId);
+  }
+
   async createMovement(data: CreateMovementDto) {
     if (!data.productId) throw new Error('El producto es requerido');
     if (!data.quantity || data.quantity <= 0) throw new Error('La cantidad debe ser mayor a 0');

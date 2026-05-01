@@ -38,6 +38,16 @@ export class MovementController {
     }
   }
 
+  async getByTancada(req: Request, res: Response): Promise<void> {
+    try {
+      const tancadaId = req.params.tancadaId as string;
+      const movements = await movementService.getMovementsByTancada(tancadaId);
+      res.json(movements);
+    } catch (error) {
+      res.status(500).json({ error: 'Error fetching movements' });
+    }
+  }
+
   async create(req: Request, res: Response): Promise<void> {
     try {
       const data: CreateMovementDto = req.body;

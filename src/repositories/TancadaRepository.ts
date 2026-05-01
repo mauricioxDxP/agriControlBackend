@@ -124,6 +124,8 @@ export class TancadaRepository {
         });
       }
     }
+
+    return this.findById(tancada.id);
   }
 
   async delete(id: string): Promise<void> {
