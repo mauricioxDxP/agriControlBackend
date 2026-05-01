@@ -53,10 +53,12 @@ async stockVerificationReport(req: Request, res: Response): Promise<void> {
 
       for (const [typeName, typeProducts] of Object.entries(groupedProducts)) {
         const rows = typeProducts.map(product => {
-          // Calculate total stock from movements only
+          // Calculate total stock: ENTRADA adds, SALIDA subtracts
           let totalStock = 0;
           for (const lot of product.lots) {
-            const lotStock = lot.movements.reduce((mSum: number, m: any) => mSum + m.quantity, 0);
+            const lotStock = lot.movements.reduce((mSum: number, m: any) => {
+              return mSum + (m.type === 'ENTRADA' ? m.quantity : -m.quantity);
+            }, 0);
             totalStock += lotStock;
           }
           return [
@@ -71,7 +73,9 @@ async stockVerificationReport(req: Request, res: Response): Promise<void> {
         let typeTotal = 0;
         for (const product of typeProducts) {
           for (const lot of product.lots) {
-            const lotStock = lot.movements.reduce((mSum: number, m: any) => mSum + m.quantity, 0);
+            const lotStock = lot.movements.reduce((mSum: number, m: any) => {
+              return mSum + (m.type === 'ENTRADA' ? m.quantity : -m.quantity);
+            }, 0);
             typeTotal += lotStock;
           }
         }
