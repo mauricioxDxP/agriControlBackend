@@ -63,6 +63,18 @@ export class MovementRepository {
     return movements.map(transformDates);
   }
 
+  async findByApplication(applicationId: string): Promise<any[]> {
+    const movements = await prisma.movement.findMany({
+      where: { applicationId },
+      include: {
+        product: true,
+        lot: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    return movements.map(transformDates);
+  }
+
   async create(data: CreateMovementDto): Promise<any> {
     const movement = await prisma.movement.create({
       data: {

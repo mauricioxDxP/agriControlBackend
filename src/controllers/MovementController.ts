@@ -48,6 +48,16 @@ export class MovementController {
     }
   }
 
+  async getByApplication(req: Request, res: Response): Promise<void> {
+    try {
+      const applicationId = req.params.applicationId as string;
+      const movements = await movementService.getMovementsByApplication(applicationId);
+      res.json(movements);
+    } catch (error) {
+      res.status(500).json({ error: 'Error fetching movements' });
+    }
+  }
+
   async create(req: Request, res: Response): Promise<void> {
     try {
       const data: CreateMovementDto = req.body;

@@ -28,25 +28,15 @@ export class ApplicationService {
     if (!data.fieldId) throw new Error('El campo es requerido');
     if (!data.type) throw new Error('El tipo de aplicación es requerido');
     
-    console.log('[ApplicationService] Creating application, lots:', JSON.stringify(data.lots, null, 2));
-    
-    // Primero crear la aplicación
+    // Crear la aplicación
     const application = await applicationRepository.create(data);
-    console.log('[ApplicationService] Application created:', application.id);
     
     // Registrar movimientos de SALIDA para cada lote usado
     if (data.lots && data.lots.length > 0) {
       for (const lotUsage of data.lots) {
-        // Obtener el productId del lote
         const lot = await prisma.lot.findUnique({ where: { id: lotUsage.lotId } });
-        if (!lot) {
-          console.log('[ApplicationService] Lot not found:', lotUsage.lotId);
-          continue;
-        }
+        if (!lot) continue;
         
-        console.log('[ApplicationService] Creating SALIDA movement, lotId:', lotUsage.lotId, 'qty:', lotUsage.quantityUsed, 'productId:', lot.productId);
-        
-        // Registrar un solo movimiento de SALIDA con la cantidad total
         await movementRepository.create({
           productId: lot.productId,
           lotId: lotUsage.lotId,
@@ -55,7 +45,6 @@ export class ApplicationService {
           notes: `Aplicación: ${application.id}`,
           applicationId: application.id
         });
-        console.log('[ApplicationService] Movement created successfully');
       }
     }
     
@@ -66,10 +55,14 @@ export class ApplicationService {
     const existing = await applicationRepository.findById(id);
     if (!existing) throw new Error('Aplicación no encontrada');
     
+    console.log('[updateApplication] existing movements:', existing.applicationLots);
+    
     // Eliminar los movimientos existentes de esta aplicación
     await prisma.movement.deleteMany({ where: { applicationId: id } });
+    console.log('[updateApplication] Deleted old movements');
     
     // Registrar los nuevos movimientos de SALIDA
+    console.log('[updateApplication] data.lots:', JSON.stringify(data.lots, null, 2));
     if (data.lots && data.lots.length > 0) {
       for (const lotUsage of data.lots) {
         const lot = await prisma.lot.findUnique({ where: { id: lotUsage.lotId } });
@@ -83,7 +76,10 @@ export class ApplicationService {
           notes: `Aplicación: ${id}`,
           applicationId: id
         });
+        console.log('[updateApplication] Created new movement for lot:', lotUsage.lotId, 'qty:', lotUsage.quantityUsed);
       }
+    } else {
+      console.log('[updateApplication] No lots to create movements for');
     }
     
     return applicationRepository.update(id, data);
