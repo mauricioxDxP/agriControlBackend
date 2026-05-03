@@ -87,9 +87,19 @@ export class TancadaRepository {
   }
 
   async create(data: CreateTancadaDto): Promise<any> {
+    // Parse date in UTC to avoid timezone shifts
+    // When user selects 2024-05-15, we store exactly May 15 in UTC
+    let dateValue: Date;
+    if (data.date) {
+      const [year, month, day] = data.date.split('-').map(Number);
+      dateValue = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+    } else {
+      dateValue = new Date();
+    }
+    
     const tancada = await prisma.tancada.create({
       data: {
-        date: data.date ? new Date(data.date) : new Date(),
+        date: dateValue,
         tankCapacity: data.tankCapacity,
         waterAmount: data.waterAmount,
         notes: data.notes
@@ -135,11 +145,20 @@ export class TancadaRepository {
   }
 
   async update(id: string, data: CreateTancadaDto): Promise<any> {
+    // Parse date in UTC to avoid timezone shifts
+    let dateValue: Date;
+    if (data.date) {
+      const [year, month, day] = data.date.split('-').map(Number);
+      dateValue = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+    } else {
+      dateValue = new Date();
+    }
+    
     // Actualizar la tancada
     await prisma.tancada.update({
       where: { id },
       data: {
-        date: data.date ? new Date(data.date) : new Date(),
+        date: dateValue,
         tankCapacity: data.tankCapacity,
         waterAmount: data.waterAmount,
         notes: data.notes

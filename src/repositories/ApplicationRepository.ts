@@ -55,11 +55,20 @@ export class ApplicationRepository {
   }
 
   async create(data: CreateApplicationDto): Promise<any> {
+    // Parse date in UTC to avoid timezone shifts
+    let dateValue: Date;
+    if (data.date) {
+      const [year, month, day] = data.date.split('-').map(Number);
+      dateValue = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+    } else {
+      dateValue = new Date();
+    }
+    
     const application = await prisma.application.create({
       data: {
         fieldId: data.fieldId,
         type: data.type,
-        date: data.date ? new Date(data.date) : new Date(),
+        date: dateValue,
         waterAmount: data.waterAmount,
         notes: data.notes
       },
@@ -109,13 +118,22 @@ export class ApplicationRepository {
   }
 
   async update(id: string, data: CreateApplicationDto): Promise<any> {
+    // Parse date in UTC to avoid timezone shifts
+    let dateValue: Date;
+    if (data.date) {
+      const [year, month, day] = data.date.split('-').map(Number);
+      dateValue = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+    } else {
+      dateValue = new Date();
+    }
+    
     // Actualizar la aplicación
     await prisma.application.update({
       where: { id },
       data: {
         fieldId: data.fieldId,
         type: data.type,
-        date: data.date ? new Date(data.date) : new Date(),
+        date: dateValue,
         waterAmount: data.waterAmount,
         notes: data.notes
       }
