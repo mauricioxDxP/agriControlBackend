@@ -451,6 +451,325 @@ async stockVerificationReport(req: Request, res: Response): Promise<void> {
       }
     }
   }
+async batchTancadasReport(req: Request, res: Response): Promise<void> {
+    try {
+      const idsParam = req.query.ids as string;
+      const ids = idsParam ? idsParam.split(',') : [];
+      
+      if (!ids || ids.length === 0) {
+        res.status(400).json({ error: 'Se requieren IDs de tancadas' });
+        return;
+      }
+
+      if (ids.length > 2) {
+        res.status(400).json({ error: 'Máximo 2 tancadas por impresión' });
+        return;
+      }
+
+      const tancadas = await Promise.all(
+        ids.map(id => 
+          prisma.tancada.findUnique({
+            where: { id },
+            include: {
+              tancadaProducts: { include: { product: true } },
+              tancadaFields: { include: { field: true } }
+            }
+          })
+        )
+      );
+
+      const validTancadas = tancadas.filter(t => t !== null);
+      
+      if (validTancadas.length === 0) {
+        res.status(404).json({ error: 'No se encontraron tancadas' });
+        return;
+      }
+
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      
+      // Both tancadas on SAME page - top half and bottom half
+      // Calculate positions
+      const halfPageY = pageWidth >= 200 ? 148 : 140; // Half page Y for landscape or portrait
+      const margin = 15;
+      const colWidth = (pageWidth - margin * 2) / 4;
+      
+      validTancadas.forEach((tancada, index) => {
+        // Each tancada gets half the page
+        const baseY = index === 0 ? 10 : halfPageY + 5;
+
+        // Header with title and date
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`TANCADA: ${new Date(tancada.date).toLocaleDateString('es-AR')}`, margin, baseY + 5);
+        
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text('VERIFICACIÓN', pageWidth - margin, baseY + 5, { align: 'right' });
+        
+        let y = baseY + 12;
+
+        // Info box
+        const totalHectareas = tancada.tancadaFields?.reduce((sum: number, f: any) => sum + f.hectaresTreated, 0) || 0;
+        
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`AGUA: ${tancada.waterAmount.toFixed(0)} L  |  HECTÁREAS: ${totalHectareas.toFixed(2)} ha`, margin, y);
+        y += 8;
+
+        // Products section header
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PRODUCTOS:', margin, y);
+        y += 4;
+
+        doc.setFont('helvetica', 'normal');
+        
+        // Products table for this tancada (compact)
+        const productRows = (tancada.tancadaProducts || []).map((tp: any) => {
+          const productCode = tp.product?.productCode || '-';
+          const productName = (tp.product?.name || 'Sin nombre').substring(0, 20);
+          const unidad = tp.product?.baseUnit || 'L';
+          
+          let totalCantidad = tp.quantity;
+          if (tp.lotsUsed) {
+            try {
+              const lotsUsed = typeof tp.lotsUsed === 'string' ? JSON.parse(tp.lotsUsed) : tp.lotsUsed;
+              if (Array.isArray(lotsUsed)) {
+                totalCantidad = lotsUsed.reduce((sum: number, lu: any) => sum + (lu.quantityUsed || 0), 0);
+              }
+            } catch (e) {}
+          }
+          
+          return [
+            productCode.substring(0, 8),
+            productName,
+            `${totalCantidad.toFixed(2)} ${getBaseUnitAbbr(unidad)}`
+          ];
+        });
+
+        autoTable(doc, {
+          head: [['Código', 'Producto', 'Cantidad']],
+          body: productRows,
+          startY: y,
+          margin: { left: margin, right: margin },
+          columnStyles: {
+            0: { cellWidth: 25 },
+            1: { cellWidth: 'auto' },
+            2: { cellWidth: 35, halign: 'right' }
+          },
+          headStyles: {
+            fillColor: [180, 180, 180],
+            textColor: [0, 0, 0],
+            fontStyle: 'bold',
+            fontSize: 7,
+            cellPadding: 2
+          },
+          bodyStyles: {
+            fontSize: 8,
+            cellPadding: 2
+          },
+          tableLineColor: [150, 150, 150],
+          tableLineWidth: 0.1,
+          tableWidth: pageWidth - margin * 2
+        });
+
+        y = (doc as any).lastAutoTable.finalY + 6;
+
+        // Fields section
+        if (tancada.tancadaFields && tancada.tancadaFields.length > 0) {
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'bold');
+          doc.text('CAMPOS TRATADOS:', margin, y);
+          y += 4;
+
+          const fieldRows = tancada.tancadaFields.map((tf: any) => [
+            (tf.field?.name || 'Sin nombre').substring(0, 25),
+            `${tf.hectaresTreated.toFixed(2)} ha`
+          ]);
+
+          autoTable(doc, {
+            head: [['Campo', 'Hectáreas']],
+            body: fieldRows,
+            startY: y,
+            margin: { left: margin, right: margin },
+            columnStyles: {
+              0: { cellWidth: 'auto' },
+              1: { cellWidth: 35, halign: 'right' }
+            },
+            headStyles: {
+              fillColor: [180, 180, 180],
+              textColor: [0, 0, 0],
+              fontStyle: 'bold',
+              fontSize: 7,
+              cellPadding: 2
+            },
+            bodyStyles: {
+              fontSize: 8,
+              cellPadding: 2
+            },
+            tableLineColor: [150, 150, 150],
+            tableLineWidth: 0.1,
+            tableWidth: pageWidth - margin * 2
+          });
+
+          y = (doc as any).lastAutoTable.finalY + 6;
+        }
+
+        // Signature lines at the bottom of the half-page section
+        doc.setFontSize(8);
+        doc.text('Firma responsable:', margin, y + 8);
+        doc.line(margin, y + 11, 80, y + 11);
+        doc.text('Firma verificación:', pageWidth - margin - 60, y + 8);
+        doc.line(pageWidth - margin - 60, y + 11, pageWidth - margin, y + 11);
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename=Verificacion_Tancadas_${new Date().getTime()}.pdf`);
+      const pdfData = doc.output('arraybuffer');
+      res.send(Buffer.from(pdfData));
+    } catch (error) {
+      console.error('Error generating batch tancadas report:', error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Error generating report' });
+      }
+    }
+  }
+
+  async batchApplicationsReport(req: Request, res: Response): Promise<void> {
+    try {
+      const idsParam = req.query.ids as string;
+      const ids = idsParam ? idsParam.split(',') : [];
+      
+      if (!ids || ids.length === 0) {
+        res.status(400).json({ error: 'Se requieren IDs de aplicaciones' });
+        return;
+      }
+
+      if (ids.length > 2) {
+        res.status(400).json({ error: 'Máximo 2 aplicaciones por impresión' });
+        return;
+      }
+
+      const applications = await Promise.all(
+        ids.map(id => 
+          prisma.application.findUnique({
+            where: { id },
+            include: {
+              field: true,
+              applicationProducts: { include: { product: true } },
+              applicationLots: { include: { lot: true } }
+            }
+          })
+        )
+      );
+
+      const validApplications = applications.filter(a => a !== null);
+      
+      if (validApplications.length === 0) {
+        res.status(404).json({ error: 'No se encontraron aplicaciones' });
+        return;
+      }
+
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      
+      const margin = 15;
+      const halfPageY = 140;
+
+      validApplications.forEach((application, index) => {
+        const baseY = index === 0 ? 10 : halfPageY + 5;
+
+        // Header
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`APLICACIÓN: ${new Date(application.date).toLocaleDateString('es-AR')}`, margin, baseY + 5);
+        
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text('VERIFICACIÓN', pageWidth - margin, baseY + 5, { align: 'right' });
+        
+        let y = baseY + 12;
+
+        // Info
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`TIPO: ${application.type}  |  CAMPO: ${(application.field?.name || 'Sin nombre').substring(0, 25)}`, margin, y);
+        y += 5;
+        
+        if (application.waterAmount) {
+          doc.text(`AGUA: ${application.waterAmount.toFixed(0)} L`, margin, y);
+          y += 5;
+        }
+        y += 3;
+
+        // Products
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PRODUCTOS:', margin, y);
+        y += 4;
+
+        doc.setFont('helvetica', 'normal');
+        
+        const productRows = (application.applicationProducts || []).map((ap: any) => {
+          const productCode = ap.product?.productCode || '-';
+          const productName = (ap.product?.name || 'Sin nombre').substring(0, 20);
+          const unidad = ap.product?.baseUnit || 'L';
+          
+          return [
+            productCode.substring(0, 8),
+            productName,
+            `${ap.quantityUsed.toFixed(2)} ${getBaseUnitAbbr(unidad)}`
+          ];
+        });
+
+        autoTable(doc, {
+          head: [['Código', 'Producto', 'Cantidad']],
+          body: productRows,
+          startY: y,
+          margin: { left: margin, right: margin },
+          columnStyles: {
+            0: { cellWidth: 25 },
+            1: { cellWidth: 'auto' },
+            2: { cellWidth: 40, halign: 'right' }
+          },
+          headStyles: {
+            fillColor: [180, 180, 180],
+            textColor: [0, 0, 0],
+            fontStyle: 'bold',
+            fontSize: 7,
+            cellPadding: 2
+          },
+          bodyStyles: {
+            fontSize: 8,
+            cellPadding: 2
+          },
+          tableLineColor: [150, 150, 150],
+          tableLineWidth: 0.1,
+          tableWidth: pageWidth - margin * 2
+        });
+
+        y = (doc as any).lastAutoTable.finalY + 10;
+
+        // Signature lines
+        doc.setFontSize(8);
+        doc.text('Firma responsable:', margin, y + 8);
+        doc.line(margin, y + 11, 80, y + 11);
+        doc.text('Firma verificación:', pageWidth - margin - 60, y + 8);
+        doc.line(pageWidth - margin - 60, y + 11, pageWidth - margin, y + 11);
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename=Verificacion_Aplicaciones_${new Date().getTime()}.pdf`);
+      const pdfData = doc.output('arraybuffer');
+      res.send(Buffer.from(pdfData));
+    } catch (error) {
+      console.error('Error generating batch applications report:', error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Error generating report' });
+      }
+    }
+  }
 }
 
 export const reportController = new ReportController();
