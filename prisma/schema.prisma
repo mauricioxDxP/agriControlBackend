@@ -47,7 +47,6 @@ model Product {
   doseType              DoseType?
   doseUnit              DoseUnit?
   genericName           String?
-  applicationProducts   ApplicationProduct[]
   lots                  Lot[]
   movements             Movement[]
   state                 ProductState         @relation(fields: [stateId], references: [id])
@@ -70,7 +69,6 @@ model Lot {
   updatedAt         DateTime            @updatedAt
   synced            Boolean             @default(false)
   lotCode           String?
-  applicationLots   ApplicationLot[]
   containerType     ContainerTypeModel? @relation(fields: [containerTypeId], references: [id])
   product           Product             @relation(fields: [productId], references: [id])
   movements         Movement[]
@@ -99,7 +97,6 @@ model Field {
   synced    Boolean  @default(false)
   deletedAt DateTime?
   terrain   Terrain  @relation(fields: [terrainId], references: [id])
-  applications  Application[]
   tancadaFields TancadaField[]
   plantings   Planting[]
 }
@@ -129,38 +126,6 @@ model PlantedProductType {
   @@unique([productTypeId])
 }
 
-model Application {
-  id                  String               @id @default(uuid())
-  fieldId             String
-  type                ApplicationType
-  date                DateTime             @default(now())
-  waterAmount         Float?
-  notes               String?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  synced              Boolean              @default(false)
-  field               Field                @relation(fields: [fieldId], references: [id])
-  applicationLots     ApplicationLot[]
-  applicationProducts ApplicationProduct[]
-}
-
-model ApplicationProduct {
-  id                    String      @id @default(uuid())
-  applicationId         String
-  productId             String
-  dosePerHectare        Float?
-  concentration         Float?
-  quantityUsed          Float
-  lotsUsed              String?
-  createdAt             DateTime    @default(now())
-  synced                Boolean     @default(false)
-  concentrationPerLiter Float?
-  application           Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  product               Product     @relation(fields: [productId], references: [id])
-
-  @@unique([applicationId, productId])
-}
-
 model Movement {
   id            String       @id @default(uuid())
   productId     String
@@ -177,21 +142,9 @@ model Movement {
   product       Product      @relation(fields: [productId], references: [id])
 }
 
-model ApplicationLot {
-  id            String      @id @default(uuid())
-  applicationId String
-  lotId         String
-  quantityUsed  Float
-  createdAt     DateTime    @default(now())
-  synced        Boolean     @default(false)
-  application   Application @relation(fields: [applicationId], references: [id])
-  lot           Lot         @relation(fields: [lotId], references: [id])
-
-  @@unique([applicationId, lotId])
-}
-
 model Tancada {
   id              String           @id @default(uuid())
+  type            TancadaType      @default(FUMIGACION) 
   date            DateTime         @default(now())
   tankCapacity    Float
   waterAmount     Float
@@ -330,11 +283,6 @@ enum DoseUnit {
   L
 }
 
-enum ApplicationType {
-  FUMIGACION
-  SIEMBRA
-}
-
 enum MovementType {
   ENTRADA
   SALIDA
@@ -343,4 +291,9 @@ enum MovementType {
 enum DoseType {
   PER_HECTARE
   CONCENTRATION
+}
+
+enum TancadaType {
+  FUMIGACION
+  SIEMBRA
 }

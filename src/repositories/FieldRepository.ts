@@ -97,23 +97,16 @@ export class FieldRepository {
 
   /**
    * Delete field with soft/hard delete logic:
-   * - If field has applications or tancadas -> soft delete (set deletedAt)
+   * - If field has tancadas -> soft delete (set deletedAt)
    * - If field has no related records -> hard delete
    */
   async delete(id: string): Promise<{ type: 'soft' | 'hard'; fieldId: string }> {
-    // Check for related applications
-    const applicationCount = await prisma.application.count({
-      where: { fieldId: id }
-    });
-
     // Check for related tancadas
     const tancadaCount = await prisma.tancadaField.count({
       where: { fieldId: id }
     });
 
-    const hasRelatedRecords = applicationCount > 0 || tancadaCount > 0;
-
-    if (hasRelatedRecords) {
+    if (tancadaCount > 0) {
       // Soft delete: set deletedAt
       await prisma.field.update({
         where: { id },

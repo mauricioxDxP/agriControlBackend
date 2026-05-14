@@ -165,9 +165,6 @@ export class LotRepository {
   }
 
   async delete(id: string): Promise<void> {
-    // Eliminar ApplicationLots asociadas al lote
-    await prisma.applicationLot.deleteMany({ where: { lotId: id } });
-    
     // Eliminar movimientos del lote
     await prisma.movement.deleteMany({ where: { lotId: id } });
 

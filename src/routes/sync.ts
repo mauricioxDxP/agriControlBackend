@@ -7,14 +7,12 @@ const prisma = new PrismaClient();
 // POST /api/sync - Sincronizar datos desde el cliente offline
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { products, lots, fields, applications, movements, applicationLots, lotLines, lastSync, terrains, plantings, inventoryCounts, inventoryCountLines, inventoryCountAdjustments, inventoryCountAdjustmentLots } = req.body;
+    const { products, lots, fields, movements, lotLines, lastSync, terrains, plantings, inventoryCounts, inventoryCountLines, inventoryCountAdjustments, inventoryCountAdjustmentLots } = req.body;
     const results: any = {
       products: [],
       lots: [],
       fields: [],
-      applications: [],
       movements: [],
-      applicationLots: [],
       lotLines: [],
       terrains: [],
       plantings: [],
@@ -121,25 +119,6 @@ router.post('/', async (req: Request, res: Response) => {
       }
     }
 
-    // Sincronizar aplicaciones
-    if (applications && Array.isArray(applications)) {
-      for (const app of applications) {
-        const existing = await prisma.application.findUnique({ where: { id: app.id } });
-        if (existing) {
-          if (new Date(app.updatedAt) > new Date(existing.updatedAt)) {
-            results.applications.push(await prisma.application.update({
-              where: { id: app.id },
-              data: { ...app, synced: true }
-            }));
-          }
-        } else {
-          results.applications.push(await prisma.application.create({
-            data: { ...app, synced: true }
-          }));
-        }
-      }
-    }
-
     // Sincronizar movimientos
     if (movements && Array.isArray(movements)) {
       for (const movement of movements) {
@@ -154,25 +133,6 @@ router.post('/', async (req: Request, res: Response) => {
         } else {
           results.movements.push(await prisma.movement.create({
             data: { ...movement, synced: true }
-          }));
-        }
-      }
-    }
-
-    // Sincronizar applicationLots
-    if (applicationLots && Array.isArray(applicationLots)) {
-      for (const al of applicationLots) {
-        const existing = await prisma.applicationLot.findUnique({
-          where: { applicationId_lotId: { applicationId: al.applicationId, lotId: al.lotId } }
-        });
-        if (existing) {
-          results.applicationLots.push(await prisma.applicationLot.update({
-            where: { applicationId_lotId: { applicationId: al.applicationId, lotId: al.lotId } },
-            data: { ...al, synced: true }
-          }));
-        } else {
-          results.applicationLots.push(await prisma.applicationLot.create({
-            data: { ...al, synced: true }
           }));
         }
       }
@@ -253,9 +213,7 @@ router.post('/', async (req: Request, res: Response) => {
       products: await prisma.product.findMany({ where: { synced: false } }),
       lots: await prisma.lot.findMany({ where: { synced: false } }),
       fields: await prisma.field.findMany({ where: { synced: false } }),
-      applications: await prisma.application.findMany({ where: { synced: false } }),
       movements: await prisma.movement.findMany({ where: { synced: false } }),
-      applicationLots: await prisma.applicationLot.findMany({ where: { synced: false } }),
       tanques: await prisma.tank.findMany({ where: { synced: false } }),
       tancadas: await prisma.tancada.findMany({ where: { synced: false } }),
       terrains: await prisma.terrain.findMany({ where: { synced: false } }),
@@ -272,17 +230,7 @@ router.post('/', async (req: Request, res: Response) => {
     await prisma.terrain.updateMany({ where: { id: { in: terrains?.map((t: any) => t.id) || [] } }, data: { synced: true } });
     await prisma.field.updateMany({ where: { id: { in: fields?.map((f: any) => f.id) || [] } }, data: { synced: true } });
     await prisma.planting.updateMany({ where: { id: { in: plantings?.map((s: any) => s.id) || [] } }, data: { synced: true } });
-    await prisma.application.updateMany({ where: { id: { in: applications?.map((a: any) => a.id) || [] } }, data: { synced: true } });
     await prisma.movement.updateMany({ where: { id: { in: movements?.map((m: any) => m.id) || [] } }, data: { synced: true } });
-    await prisma.applicationLot.updateMany({ 
-      where: { 
-        OR: applicationLots?.map((al: any) => ({ 
-          applicationId: al.applicationId, 
-          lotId: al.lotId 
-        })) || [] 
-      }, 
-      data: { synced: true } 
-    });
     await prisma.inventoryCount.updateMany({ where: { id: { in: inventoryCounts?.map((ic: any) => ic.id) || [] } }, data: { synced: true } });
 
     res.json({
@@ -304,9 +252,7 @@ router.get('/', async (req: Request, res: Response) => {
       products: await prisma.product.findMany({ where: { synced: false } }),
       lots: await prisma.lot.findMany({ where: { synced: false } }),
       fields: await prisma.field.findMany({ where: { synced: false } }),
-      applications: await prisma.application.findMany({ where: { synced: false } }),
       movements: await prisma.movement.findMany({ where: { synced: false } }),
-      applicationLots: await prisma.applicationLot.findMany({ where: { synced: false } }),
       tanques: await prisma.tank.findMany({ where: { synced: false } }),
       tancadas: await prisma.tancada.findMany({ where: { synced: false } }),
       terrains: await prisma.terrain.findMany({ where: { synced: false } }),
